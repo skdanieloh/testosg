@@ -33,8 +33,14 @@ npm run dev
 ## Vercel 배포
 
 1. 저장소 연결 후 Deploy.
-2. 프로젝트에 Redis(Upstash) 연동 및 위 환경 변수 설정.
-3. 재배포.
+2. **Framework Preset**이 **Next.js**인지 확인합니다. (예전 정적 사이트 설정이 남아 있으면 안 됩니다.)
+3. **Project → Settings → General → Build & Development Settings**에서 **Output Directory**를 **비워 둡니다.**  
+   Next.js는 산출물이 `public`이 아니라 Vercel이 `next build` 결과를 처리합니다.  
+   `Output Directory`에 `public`이 들어가 있으면 `No Output Directory named "public"` 오류가 납니다.
+4. 프로젝트에 Redis(Upstash) 연동 및 위 환경 변수 설정.
+5. 재배포.
+
+저장소 루트의 `vercel.json`은 `framework: nextjs`로 두어 자동 감지를 돕습니다.
 
 ## API
 
