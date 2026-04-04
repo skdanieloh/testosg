@@ -1,6 +1,7 @@
 (function () {
   "use strict";
 
+  const SHARE_BASE = "https://testosg.vercel.app";
   const W = 420;
   const H = 640;
   const ROAD_MARGIN = 36;
@@ -13,6 +14,11 @@
   const ENEMY_W = 42;
   const ENEMY_H = 68;
 
+  const LS_NAME = "dodge-my-name";
+  const LS_THEME = "dodge-theme";
+  const LS_ROOM = "dodge-room-id";
+  const LS_JOINED = "dodge-joined-room";
+
   /** @type {HTMLCanvasElement | null} */
   const canvas = document.getElementById("game");
   /** @type {CanvasRenderingContext2D | null} */
@@ -22,11 +28,32 @@
   const gameScreen = document.getElementById("game-screen");
   const startBtn = document.getElementById("start-btn");
   const scoreEl = document.getElementById("score");
+  const levelEl = document.getElementById("level");
   const bestEl = document.getElementById("best");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const overlayScore = document.getElementById("overlay-score");
   const restartBtn = document.getElementById("restart-btn");
+
+  const myNameInput = document.getElementById("my-name");
+  const createRoomBtn = document.getElementById("create-room-btn");
+  const roomLabel = document.getElementById("room-label");
+  const duelHint = document.getElementById("duel-hint");
+  const joinBanner = document.getElementById("join-banner");
+  const joinNameInput = document.getElementById("join-name");
+  const joinBtn = document.getElementById("join-btn");
+  const duelBoard = document.getElementById("duel-board");
+  const duelList = document.getElementById("duel-list");
+
+  const themeSelect = document.getElementById("theme-select");
+  const shareBtn = document.getElementById("share-btn");
+  const shareModal = document.getElementById("share-modal");
+  const shareBackdrop = document.getElementById("share-backdrop");
+  const shareUrlText = document.getElementById("share-url-text");
+  const shareModalDesc = document.getElementById("share-modal-desc");
+  const qrcodeHost = document.getElementById("qrcode-host");
+  const copyLinkBtn = document.getElementById("copy-link-btn");
+  const closeShareBtn = document.getElementById("close-share-btn");
 
   const CAR_SPECS = [
     { body: "#c43c3c", roof: "#8b2020", window: "#87ceeb" },
@@ -50,9 +77,277 @@
   let running = false;
   let lastTs = 0;
   let spawnAcc = 0;
+  let survivalTime = 0;
+  let level = 1;
   let difficulty = 1;
-  /** @type {{ x: number, y: number, vy: number, vx: number, palette: typeof ENEMY_PALETTES[0] }[]} */
+  /** @type {{ x: number, y: number, vy: number, vx: number, palette: (typeof ENEMY_PALETTES)[0] }[]} */
   let enemies = [];
+
+  let roomId = "";
+  let apiOnline = true;
+  let pollTimer = 0;
+
+  function getRoadTheme() {
+    const t = document.body.getAttribute("data-theme") || "dark";
+    if (t === "light") {
+      return {
+        outer: "#c5d0dc",
+        road: "#dde5ef",
+        dash: "rgba(40,50,65,0.65)",
+        edge: "rgba(40,50,65,0.45)",
+        shoulder: "rgba(0,0,0,0.06)",
+      };
+    }
+    if (t === "gray") {
+      return {
+        outer: "#2f3338",
+        road: "#4a5058",
+        dash: "rgba(255,255,255,0.5)",
+        edge: "rgba(255,255,255,0.28)",
+        shoulder: "rgba(0,0,0,0.25)",
+      };
+    }
+    return {
+      outer: "#1e2633",
+      road: "#2d3848",
+      dash: "rgba(255,255,255,0.55)",
+      edge: "rgba(255,255,255,0.35)",
+      shoulder: "rgba(0,0,0,0.2)",
+    };
+  }
+
+  function parseRoomFromUrl() {
+    const p = new URLSearchParams(window.location.search).get("room");
+    if (p && /^[a-z0-9]{8,12}$/.test(p)) return p;
+    return "";
+  }
+
+  function initIdentity() {
+    const saved = localStorage.getItem(LS_NAME) || "";
+    if (myNameInput) myNameInput.value = saved;
+    const th = localStorage.getItem(LS_THEME) || "dark";
+    if (themeSelect) {
+      themeSelect.value = th === "light" || th === "gray" || th === "dark" ? th : "dark";
+      document.body.setAttribute("data-theme", themeSelect.value);
+    }
+    roomId = parseRoomFromUrl() || localStorage.getItem(LS_ROOM) || "";
+    if (roomId && !parseRoomFromUrl()) {
+      const u = new URL(window.location.href);
+      u.searchParams.set("room", roomId);
+      history.replaceState({}, "", u.toString());
+    }
+    updateRoomLabel();
+    const urlRoom = parseRoomFromUrl();
+    const joinedRoom = localStorage.getItem(LS_JOINED) || "";
+    if (urlRoom && joinedRoom !== urlRoom) {
+      joinBanner?.classList.remove("hidden");
+      if (joinNameInput && !joinNameInput.value) joinNameInput.value = saved;
+    } else {
+      joinBanner?.classList.add("hidden");
+    }
+    refreshDuelBoard();
+    startPolling();
+  }
+
+  function myName() {
+    return (myNameInput?.value || "").trim();
+  }
+
+  function updateRoomLabel() {
+    if (!roomLabel) return;
+    if (roomId) {
+      roomLabel.textContent = `방 ID: ${roomId}`;
+    } else {
+      roomLabel.textContent = "방 없음 · 대결 방 만들기로 친구와 연결";
+    }
+  }
+
+  async function apiPost(body) {
+    const r = await fetch("/api/room", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    return { ok: r.ok, status: r.status, data };
+  }
+
+  async function apiGetRoom(id) {
+    const r = await fetch(`/api/room?id=${encodeURIComponent(id)}`);
+    const data = await r.json().catch(() => ({}));
+    return { ok: r.ok, status: r.status, data };
+  }
+
+  async function refreshDuelBoard() {
+    if (!duelBoard || !duelList) return;
+    if (!roomId) {
+      duelBoard.classList.add("hidden");
+      return;
+    }
+    const { ok, data } = await apiGetRoom(roomId);
+    if (!ok || !data.ok || !data.room) {
+      duelBoard.classList.add("hidden");
+      if (data && data.error === "not_found") {
+        duelHint.textContent = "방을 찾을 수 없습니다. 새 방을 만드세요.";
+        roomId = "";
+        localStorage.removeItem(LS_ROOM);
+        updateRoomLabel();
+      }
+      return;
+    }
+    apiOnline = true;
+    duelBoard.classList.remove("hidden");
+    const members = data.room.members || {};
+    const rows = Object.entries(members)
+      .map(([name, v]) => ({
+        name,
+        bestScore: v.bestScore ?? 0,
+      }))
+      .sort((a, b) => b.bestScore - a.bestScore);
+    const me = myName();
+    duelList.innerHTML = rows
+      .map(
+        (row) =>
+          `<li${row.name === me ? ' class="me"' : ""}><span>${escapeHtml(row.name)}</span><span>${row.bestScore}</span></li>`
+      )
+      .join("");
+    if (!rows.length) {
+      duelList.innerHTML = '<li class="empty"><span>참가자 없음</span></li>';
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = window.setInterval(() => {
+      if (roomId) refreshDuelBoard();
+    }, 4000);
+  }
+
+  createRoomBtn?.addEventListener("click", async () => {
+    const name = myName();
+    if (!name) {
+      duelHint.textContent = "먼저 내 이름을 입력하세요.";
+      myNameInput?.focus();
+      return;
+    }
+    duelHint.textContent = "방을 만드는 중…";
+    const { ok, data, status } = await apiPost({ action: "create" });
+    if (!ok || !data.ok) {
+      apiOnline = false;
+      duelHint.textContent =
+        status === 503
+          ? "온라인 대결을 쓰려면 서버에 Upstash Redis(URL·토큰)를 연결하세요."
+          : "방을 만들 수 없습니다.";
+      return;
+    }
+    roomId = data.roomId;
+    localStorage.setItem(LS_ROOM, roomId);
+    localStorage.setItem(LS_NAME, name);
+    const u = new URL(window.location.href);
+    u.searchParams.set("room", roomId);
+    history.replaceState({}, "", u.toString());
+    await apiPost({ action: "join", roomId, name });
+    localStorage.setItem(LS_JOINED, roomId);
+    joinBanner?.classList.add("hidden");
+    duelHint.textContent = "방이 생성되었습니다. 공유하기로 QR을 보내 보세요.";
+    updateRoomLabel();
+    refreshDuelBoard();
+  });
+
+  joinBtn?.addEventListener("click", async () => {
+    const rid = parseRoomFromUrl();
+    const name = (joinNameInput?.value || "").trim();
+    if (!rid || !name) {
+      duelHint.textContent = "이름을 입력하세요.";
+      return;
+    }
+    const { ok, data, status } = await apiPost({ action: "join", roomId: rid, name });
+    if (!ok || !data.ok) {
+      duelHint.textContent =
+        status === 503 ? "서버 저장소가 설정되지 않았습니다." : "참가에 실패했습니다.";
+      return;
+    }
+    roomId = rid;
+    localStorage.setItem(LS_ROOM, roomId);
+    localStorage.setItem(LS_NAME, name);
+    localStorage.setItem(LS_JOINED, rid);
+    if (myNameInput) myNameInput.value = name;
+    joinBanner?.classList.add("hidden");
+    duelHint.textContent = "참가했습니다. 같은 방 점수판에서 최고 점수를 겨룹니다.";
+    updateRoomLabel();
+    refreshDuelBoard();
+  });
+
+  myNameInput?.addEventListener("change", () => {
+    const v = myName();
+    if (v) localStorage.setItem(LS_NAME, v);
+  });
+
+  themeSelect?.addEventListener("change", () => {
+    const v = themeSelect.value;
+    document.body.setAttribute("data-theme", v);
+    localStorage.setItem(LS_THEME, v);
+  });
+
+  function shareUrlForQr() {
+    if (roomId) {
+      return `${SHARE_BASE.replace(/\/$/, "")}/?room=${encodeURIComponent(roomId)}`;
+    }
+    return `${SHARE_BASE.replace(/\/$/, "")}/`;
+  }
+
+  function openShareModal() {
+    if (!shareModal || !qrcodeHost || !shareUrlText) return;
+    const url = shareUrlForQr();
+    shareUrlText.textContent = url;
+    if (shareModalDesc) {
+      shareModalDesc.textContent = roomId
+        ? "같은 방에서 최고 점수를 겨룹니다. 상대가 앱에서 이름을 입력하면 점수판에 표시됩니다."
+        : "친구가 같은 앱으로 들어온 뒤, 각자 이름을 입력하고 「대결 방 만들기」로 방을 만들면 점수를 겨룰 수 있습니다.";
+    }
+    qrcodeHost.innerHTML = "";
+    const QR = window.QRCode;
+    if (typeof QR === "function") {
+      const dark = document.body.getAttribute("data-theme") === "light" ? "#111111" : "#000000";
+      new QR(qrcodeHost, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: dark,
+        colorLight: "#ffffff",
+      });
+    } else {
+      qrcodeHost.textContent = "QR 라이브러리를 불러오지 못했습니다.";
+    }
+    shareModal.classList.remove("hidden");
+    shareModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeShareModal() {
+    shareModal?.classList.add("hidden");
+    shareModal?.setAttribute("aria-hidden", "true");
+  }
+
+  shareBtn?.addEventListener("click", openShareModal);
+  shareBackdrop?.addEventListener("click", closeShareModal);
+  closeShareBtn?.addEventListener("click", closeShareModal);
+  copyLinkBtn?.addEventListener("click", async () => {
+    const url = shareUrlForQr();
+    try {
+      await navigator.clipboard.writeText(url);
+      duelHint.textContent = "링크를 복사했습니다.";
+    } catch {
+      duelHint.textContent = "복사에 실패했습니다. 아래 주소를 직접 선택해 복사하세요.";
+    }
+  });
 
   function laneCenterX(i) {
     return ROAD_MARGIN + LANE_WIDTH * (i + 0.5);
@@ -97,18 +392,19 @@
   }
 
   function drawRoad(c, offset) {
+    const rt = getRoadTheme();
     const left = ROAD_MARGIN;
     const right = W - ROAD_MARGIN;
-    c.fillStyle = "#1e2633";
+    c.fillStyle = rt.outer;
     c.fillRect(0, 0, W, H);
-    c.fillStyle = "#2d3848";
+    c.fillStyle = rt.road;
     c.fillRect(left, 0, right - left, H);
 
     const dashLen = 40;
     const gap = 35;
     const period = dashLen + gap;
     const shift = offset % period;
-    c.strokeStyle = "rgba(255,255,255,0.55)";
+    c.strokeStyle = rt.dash;
     c.lineWidth = 3;
     c.setLineDash([dashLen, gap]);
     for (let i = 1; i < LANE_COUNT; i++) {
@@ -119,7 +415,7 @@
       c.stroke();
     }
     c.setLineDash([]);
-    c.strokeStyle = "rgba(255,255,255,0.35)";
+    c.strokeStyle = rt.edge;
     c.lineWidth = 4;
     c.beginPath();
     c.moveTo(left, 0);
@@ -128,7 +424,7 @@
     c.lineTo(right, H);
     c.stroke();
 
-    c.fillStyle = "rgba(0,0,0,0.2)";
+    c.fillStyle = rt.shoulder;
     c.fillRect(0, 0, left - 2, H);
     c.fillRect(right + 2, 0, W - right - 2, H);
   }
@@ -160,9 +456,9 @@
     const jitter = (Math.random() - 0.5) * LANE_WIDTH * 0.35;
     const x = laneCenterX(lane) + jitter;
     const palette = ENEMY_PALETTES[Math.floor(Math.random() * ENEMY_PALETTES.length)];
-    const baseVy = 180 + difficulty * 28;
-    const vy = baseVy + Math.random() * 60;
-    const vx = (Math.random() - 0.5) * 45;
+    const baseVy = 150 + level * 32 + survivalTime * 2.5;
+    const vy = baseVy + Math.random() * (70 + level * 8);
+    const vx = (Math.random() - 0.5) * (38 + level * 4);
     enemies.push({ x, y: -ENEMY_H - 20, vy, vx, palette });
   }
 
@@ -190,16 +486,31 @@
     return false;
   }
 
+  async function submitRoomScore(finalScore) {
+    const name = myName();
+    if (!roomId || !name || !apiOnline) return;
+    const { ok, data, status } = await apiPost({
+      action: "score",
+      roomId,
+      name,
+      score: finalScore,
+    });
+    if (status === 503) apiOnline = false;
+    if (ok && data.ok) refreshDuelBoard();
+  }
+
   function gameOver() {
     running = false;
-    if (score > best) {
-      best = score;
+    const final = Math.floor(score);
+    if (final > best) {
+      best = final;
       localStorage.setItem("dodge-best", String(best));
     }
     bestEl.textContent = String(best);
     overlayTitle.textContent = "게임 오버";
-    overlayScore.textContent = `점수: ${Math.floor(score)}`;
+    overlayScore.textContent = `점수: ${final} · 레벨 ${level}`;
     overlay.classList.remove("hidden");
+    submitRoomScore(final);
   }
 
   function frame(ts) {
@@ -208,13 +519,17 @@
     lastTs = ts;
 
     if (running) {
-      const scrollSpeed = 280 + difficulty * 40;
+      survivalTime += dt;
+      level = 1 + Math.floor(survivalTime / 12);
+      difficulty = 1 + (level - 1) * 0.5 + survivalTime * 0.035;
+
+      const scrollSpeed = 260 + level * 55 + survivalTime * 3;
       roadOffset += scrollSpeed * dt;
 
       syncPlayerX(dt);
 
       spawnAcc += dt;
-      const interval = Math.max(0.55, 1.35 - difficulty * 0.12);
+      const interval = Math.max(0.28, 1.45 - level * 0.07 - survivalTime * 0.012);
       if (spawnAcc >= interval) {
         spawnAcc = 0;
         spawnEnemy();
@@ -229,8 +544,7 @@
       }
       enemies = enemies.filter((e) => e.y < H + 80);
 
-      score += dt * 12 * (1 + difficulty * 0.15);
-      difficulty += dt * 0.04;
+      score += dt * (10 + level * 2 + survivalTime * 0.08) * (1 + difficulty * 0.12);
 
       if (checkCollisions()) gameOver();
     }
@@ -243,6 +557,7 @@
     drawCar(ctx, playerX, PLAYER_Y, PLAYER_W, PLAYER_H, spec, 1);
 
     scoreEl.textContent = String(Math.floor(score));
+    levelEl.textContent = String(level);
 
     requestAnimationFrame(frame);
   }
@@ -255,6 +570,8 @@
     playerX = laneCenterX(1);
     roadOffset = 0;
     score = 0;
+    survivalTime = 0;
+    level = 1;
     difficulty = 1;
     spawnAcc = 0;
     enemies = [];
@@ -297,6 +614,7 @@
 
   bestEl.textContent = String(best);
   initPreviews();
+  initIdentity();
   lastTs = performance.now();
   requestAnimationFrame(frame);
 })();
