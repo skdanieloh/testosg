@@ -43,15 +43,27 @@ async function readJsonBody(req) {
 }
 
 /**
- * Vercel Marketplace의 Redis(Upstash) 연동 시 설정되는 UPSTASH_REDIS_REST_URL / TOKEN 사용.
- * fromEnv() 대신 명시 연결로 배포 환경에서 누락을 줄입니다.
+ * Vercel Redis 통합의 Custom Prefix에 따라 `{PREFIX}_URL` / `{PREFIX}_TOKEN` 형태로 생깁니다.
+ * 수동 설정(UPSTASH_*)과 기본 STORAGE·REDIS 등 흔한 이름을 순서대로 시도합니다.
  */
+function pickUpstashRestEnv() {
+  const candidates = [
+    [process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN],
+    [process.env.KV_REST_API_URL, process.env.KV_REST_API_TOKEN],
+    [process.env.STORAGE_URL, process.env.STORAGE_TOKEN],
+    [process.env.REDIS_URL, process.env.REDIS_TOKEN],
+  ];
+  for (const [url, token] of candidates) {
+    if (url && token) return { url, token };
+  }
+  return null;
+}
+
 function createStore() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  const creds = pickUpstashRestEnv();
+  if (!creds) return null;
   const { Redis } = require("@upstash/redis");
-  const redis = new Redis({ url, token });
+  const redis = new Redis({ url: creds.url, token: creds.token });
   return {
     async get(k) {
       return redis.get(k);
@@ -92,7 +104,7 @@ module.exports = async function handler(req, res) {
       ok: false,
       error: "not_configured",
       message:
-        "저장소가 없습니다. Vercel에 Upstash Redis(UPSTASH_REDIS_REST_URL/TOKEN) 또는 Storage → KV를 연결하세요.",
+        "저장소가 없습니다. Vercel Redis 연동 후 환경 변수(예: UPSTASH_REDIS_REST_* 또는 STORAGE_URL/STORAGE_TOKEN)를 확인하세요.",
     });
   }
 
