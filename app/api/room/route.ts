@@ -9,7 +9,13 @@ const ROOM_TTL_SEC = 60 * 60 * 24 * 7;
 
 function pickUpstashRestEnv(): { url: string; token: string } | null {
   const pairs: [string | undefined, string | undefined][] = [
+    // 표준 Upstash 문서
     [process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN],
+    // Vercel Marketplace Redis 연동 시 자동 주입되는 이름(REST_REDIS 접두)
+    [
+      process.env.UPSTASH_REDIS_REST_REDIS_URL,
+      process.env.UPSTASH_REDIS_REST_REDIS_TOKEN,
+    ],
     [process.env.KV_REST_API_URL, process.env.KV_REST_API_TOKEN],
     [process.env.STORAGE_URL, process.env.STORAGE_TOKEN],
     [process.env.REDIS_URL, process.env.REDIS_TOKEN],
