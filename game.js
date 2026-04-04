@@ -18,6 +18,8 @@
   const LS_THEME = "dodge-theme";
   const LS_ROOM = "dodge-room-id";
   const LS_JOINED = "dodge-joined-room";
+  const LS_BEST_SCORE = "dodge-best";
+  const LS_BEST_LEVEL = "dodge-best-level";
 
   /** @type {HTMLCanvasElement | null} */
   const canvas = document.getElementById("game");
@@ -29,7 +31,10 @@
   const startBtn = document.getElementById("start-btn");
   const scoreEl = document.getElementById("score");
   const levelEl = document.getElementById("level");
-  const bestEl = document.getElementById("best");
+  const personalBestScoreEl = document.getElementById("personal-best-score");
+  const personalBestLevelEl = document.getElementById("personal-best-level");
+  const touchLeft = document.getElementById("touch-left");
+  const touchRight = document.getElementById("touch-right");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const overlayScore = document.getElementById("overlay-score");
@@ -73,7 +78,11 @@
   let playerX = 0;
   let roadOffset = 0;
   let score = 0;
-  let best = Number(localStorage.getItem("dodge-best") || "0") || 0;
+  let bestScorePersonal = Number(localStorage.getItem(LS_BEST_SCORE) || "0") || 0;
+  let bestLevelPersonal = Math.max(
+    1,
+    Number(localStorage.getItem(LS_BEST_LEVEL) || "1") || 1
+  );
   let running = false;
   let lastTs = 0;
   let spawnAcc = 0;
@@ -162,6 +171,11 @@
     }
   }
 
+  function updatePersonalBar() {
+    if (personalBestScoreEl) personalBestScoreEl.textContent = String(Math.floor(bestScorePersonal));
+    if (personalBestLevelEl) personalBestLevelEl.textContent = String(bestLevelPersonal);
+  }
+
   async function apiPost(body) {
     const r = await fetch("/api/room", {
       method: "POST",
@@ -202,17 +216,22 @@
       .map(([name, v]) => ({
         name,
         bestScore: v.bestScore ?? 0,
+        bestLevel: v.bestLevel ?? 0,
       }))
-      .sort((a, b) => b.bestScore - a.bestScore);
+      .sort((a, b) => {
+        if (b.bestScore !== a.bestScore) return b.bestScore - a.bestScore;
+        return b.bestLevel - a.bestLevel;
+      });
     const me = myName();
     duelList.innerHTML = rows
-      .map(
-        (row) =>
-          `<li${row.name === me ? ' class="me"' : ""}><span>${escapeHtml(row.name)}</span><span>${row.bestScore}</span></li>`
-      )
+      .map((row, i) => {
+        const cls = row.name === me ? ' class="me"' : "";
+        return `<li${cls}><span>${i + 1}</span><span>${escapeHtml(row.name)}</span><span>${row.bestScore}</span><span>${row.bestLevel}</span></li>`;
+      })
       .join("");
     if (!rows.length) {
-      duelList.innerHTML = '<li class="empty"><span>참가자 없음</span></li>';
+      duelList.innerHTML =
+        '<li class="empty duel-list-grid"><span>—</span><span>참가자 없음</span><span>—</span><span>—</span></li>';
     }
   }
 
@@ -244,7 +263,7 @@
       apiOnline = false;
       duelHint.textContent =
         status === 503
-          ? "온라인 대결을 쓰려면 서버에 Upstash Redis(URL·토큰)를 연결하세요."
+          ? "Vercel 프로젝트에 Redis(Upstash)를 연결하고 UPSTASH_REDIS_REST_URL·TOKEN을 설정하세요."
           : "방을 만들 수 없습니다.";
       return;
     }
@@ -281,7 +300,7 @@
     localStorage.setItem(LS_JOINED, rid);
     if (myNameInput) myNameInput.value = name;
     joinBanner?.classList.add("hidden");
-    duelHint.textContent = "참가했습니다. 같은 방 점수판에서 최고 점수를 겨룹니다.";
+    duelHint.textContent = "참가했습니다. 같은 방 랭킹에 최고 점수·레벨이 반영됩니다.";
     updateRoomLabel();
     refreshDuelBoard();
   });
@@ -310,8 +329,8 @@
     shareUrlText.textContent = url;
     if (shareModalDesc) {
       shareModalDesc.textContent = roomId
-        ? "같은 방에서 최고 점수를 겨룹니다. 상대가 앱에서 이름을 입력하면 점수판에 표시됩니다."
-        : "친구가 같은 앱으로 들어온 뒤, 각자 이름을 입력하고 「대결 방 만들기」로 방을 만들면 점수를 겨룰 수 있습니다.";
+        ? "같은 방에서 최고 점수·레벨을 겨룹니다. 게임 오버 시 기록이 랭킹에 반영됩니다."
+        : "친구가 같은 앱으로 들어온 뒤, 각자 이름을 입력하고 「대결 방 만들기」로 방을 만들면 랭킹 대결을 할 수 있습니다.";
     }
     qrcodeHost.innerHTML = "";
     const QR = window.QRCode;
@@ -486,7 +505,7 @@
     return false;
   }
 
-  async function submitRoomScore(finalScore) {
+  async function submitRoomScore(finalScore, finalLevel) {
     const name = myName();
     if (!roomId || !name || !apiOnline) return;
     const { ok, data, status } = await apiPost({
@@ -494,6 +513,7 @@
       roomId,
       name,
       score: finalScore,
+      level: finalLevel,
     });
     if (status === 503) apiOnline = false;
     if (ok && data.ok) refreshDuelBoard();
@@ -502,15 +522,26 @@
   function gameOver() {
     running = false;
     const final = Math.floor(score);
-    if (final > best) {
-      best = final;
-      localStorage.setItem("dodge-best", String(best));
+    const finalLevel = level;
+    const prevScore = bestScorePersonal;
+    const prevLevel = bestLevelPersonal;
+    const parts = [];
+    if (final > prevScore) {
+      bestScorePersonal = final;
+      localStorage.setItem(LS_BEST_SCORE, String(bestScorePersonal));
+      parts.push("최고 점수");
     }
-    bestEl.textContent = String(best);
+    if (finalLevel > prevLevel) {
+      bestLevelPersonal = finalLevel;
+      localStorage.setItem(LS_BEST_LEVEL, String(bestLevelPersonal));
+      parts.push("최고 레벨");
+    }
+    updatePersonalBar();
     overlayTitle.textContent = "게임 오버";
-    overlayScore.textContent = `점수: ${final} · 레벨 ${level}`;
+    const extra = parts.length ? `\n${parts.join(" · ")} 갱신!` : "";
+    overlayScore.textContent = `이번 판 · 점수 ${final} · 레벨 ${finalLevel}${extra}`;
     overlay.classList.remove("hidden");
-    submitRoomScore(final);
+    submitRoomScore(final, finalLevel);
   }
 
   function frame(ts) {
@@ -577,7 +608,7 @@
     enemies = [];
     running = true;
     overlay.classList.add("hidden");
-    bestEl.textContent = String(best);
+    updatePersonalBar();
     lastTs = performance.now();
     if (canvas) canvas.focus();
   }
@@ -589,13 +620,32 @@
     overlay.classList.add("hidden");
   }
 
+  function moveLane(delta) {
+    if (!running) return;
+    if (delta < 0 && laneIndex > 0) laneIndex--;
+    if (delta > 0 && laneIndex < LANE_COUNT - 1) laneIndex++;
+  }
+
   window.addEventListener("keydown", (e) => {
     if (e.code !== "ArrowLeft" && e.code !== "ArrowRight") return;
     e.preventDefault();
-    if (!running) return;
-    if (e.code === "ArrowLeft" && laneIndex > 0) laneIndex--;
-    if (e.code === "ArrowRight" && laneIndex < LANE_COUNT - 1) laneIndex++;
+    if (e.code === "ArrowLeft") moveLane(-1);
+    if (e.code === "ArrowRight") moveLane(1);
   });
+
+  function bindTouch(btn, delta) {
+    if (!btn) return;
+    btn.addEventListener(
+      "pointerdown",
+      (e) => {
+        e.preventDefault();
+        moveLane(delta);
+      },
+      { passive: false }
+    );
+  }
+  bindTouch(touchLeft, -1);
+  bindTouch(touchRight, 1);
 
   document.querySelectorAll(".car-option").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -612,7 +662,7 @@
   startBtn.addEventListener("click", startGame);
   restartBtn.addEventListener("click", backToSelect);
 
-  bestEl.textContent = String(best);
+  updatePersonalBar();
   initPreviews();
   initIdentity();
   lastTs = performance.now();

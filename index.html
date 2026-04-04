@@ -24,6 +24,11 @@
         </div>
       </div>
       <p class="hint">← → 로 이동 · 장애물을 피하세요 · 시간이 지날수록 난이도·레벨 상승</p>
+      <div class="personal-bar" id="personal-bar" aria-live="polite">
+        <span>내 최고 점수 <strong id="personal-best-score">0</strong></span>
+        <span class="personal-sep">·</span>
+        <span>내 최고 레벨 <strong id="personal-best-level">1</strong></span>
+      </div>
     </header>
 
     <section class="panel identity-panel">
@@ -47,8 +52,11 @@
         </div>
       </div>
       <div id="duel-board" class="duel-board hidden">
-        <h3 class="duel-board-title">방 최고 점수</h3>
-        <ul id="duel-list" class="duel-list"></ul>
+        <h3 class="duel-board-title">방 랭킹 (최고 점수 · 최고 레벨)</h3>
+        <div class="duel-list-head" aria-hidden="true">
+          <span>#</span><span>이름</span><span>점수</span><span>레벨</span>
+        </div>
+        <ul id="duel-list" class="duel-list duel-list-grid"></ul>
       </div>
     </section>
 
@@ -80,10 +88,13 @@
           <button id="restart-btn" type="button" class="button primary">다시 선택</button>
         </div>
       </div>
+      <div class="touch-pad" id="touch-pad">
+        <button type="button" class="touch-btn" id="touch-left" aria-label="왼쪽 차선으로">◀</button>
+        <button type="button" class="touch-btn" id="touch-right" aria-label="오른쪽 차선으로">▶</button>
+      </div>
       <div class="status">
-        <span>점수: <strong id="score">0</strong></span>
-        <span>레벨: <strong id="level">1</strong></span>
-        <span>최고: <strong id="best">0</strong></span>
+        <span>점수 <strong id="score">0</strong></span>
+        <span>레벨 <strong id="level">1</strong></span>
       </div>
     </section>
   </div>

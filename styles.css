@@ -132,6 +132,29 @@ body {
   line-height: 1.4;
 }
 
+.personal-bar {
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  background: var(--field-bg);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.personal-bar strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.personal-sep {
+  opacity: 0.5;
+}
+
 .section-title {
   font-size: 1rem;
   margin: 0 0 0.75rem;
@@ -228,17 +251,31 @@ body {
   font-weight: 600;
 }
 
+.duel-list-head {
+  display: grid;
+  grid-template-columns: 2rem 1fr 3.5rem 2.5rem;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0 0 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .duel-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
 }
 
-.duel-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.35rem 0;
+.duel-list-grid li {
+  display: grid;
+  grid-template-columns: 2rem 1fr 3.5rem 2.5rem;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.4rem 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -249,6 +286,10 @@ body {
 .duel-list .me {
   color: var(--accent);
   font-weight: 600;
+}
+
+.duel-list .me span {
+  color: inherit;
 }
 
 .panel {
@@ -399,11 +440,49 @@ body {
   margin: 0 0 0.75rem;
   color: var(--muted);
   font-size: 0.95rem;
+  white-space: pre-line;
+  max-width: 22rem;
+}
+
+.touch-pad {
+  display: none;
+  gap: 1rem;
+  justify-content: center;
+  align-items: stretch;
+  margin-top: 0.65rem;
+}
+
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .touch-pad {
+    display: flex;
+  }
+}
+
+.touch-btn {
+  flex: 1;
+  max-width: 160px;
+  min-height: 52px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(180deg, #4a90d9 0%, #2d6bb8 100%);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.touch-btn:active {
+  filter: brightness(0.95);
+  transform: scale(0.98);
 }
 
 .status {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.35rem;
   margin-top: 0.75rem;
   font-size: 0.82rem;
