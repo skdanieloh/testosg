@@ -14,15 +14,28 @@ export default function HomePage() {
     setBusy(true);
     try {
       const { ok, data, status } = await apiPostRoom({ action: "create" });
-      if (!ok || !data?.ok) {
-        setErr(
-          status === 503
-            ? "Redis가 설정되지 않았습니다. Vercel 환경 변수를 확인하세요."
-            : "방을 만들 수 없습니다."
-        );
+      const d = data as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+        roomId?: string;
+      };
+      if (!ok || !d?.ok) {
+        if (status === 503) {
+          setErr(
+            d?.message ||
+              "Redis에 연결할 수 없습니다. Vercel에 REDIS_URL을 설정하고, Redis Cloud에서 네트워크(방화벽)가 Vercel IP를 허용하는지 확인하세요."
+          );
+          return;
+        }
+        if (d?.error === "redis_error" && d?.message) {
+          setErr(`Redis 오류: ${d.message}`);
+          return;
+        }
+        setErr(d?.message || "방을 만들 수 없습니다.");
         return;
       }
-      const roomId = data.roomId as string;
+      const roomId = d.roomId as string;
       router.push(`/room/${roomId}`);
     } finally {
       setBusy(false);
@@ -36,7 +49,7 @@ export default function HomePage() {
           아케이드 방 경쟁
         </h1>
         <p className="mt-2 text-sm text-slate-400">
-          QR로 친구를 불러와 같은 방 랭킹을 겨루세요. (Redis 저장)
+          QR로 친구를 불러와 같은 방 랭킹을 겨루세요. (Redis Cloud)
         </p>
       </div>
 

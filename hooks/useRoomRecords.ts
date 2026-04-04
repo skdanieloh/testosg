@@ -18,7 +18,7 @@ export function useRoomRecords(roomId: string) {
     if (status === 503 || data?.error === "not_configured") {
       setError(
         (data as { message?: string })?.message ||
-          "Redis(Upstash) 환경 변수가 설정되지 않았습니다."
+          "REDIS_URL 등 Redis 연결 환경 변수가 없습니다."
       );
       setRows([]);
       return;
