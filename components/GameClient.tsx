@@ -99,7 +99,7 @@ export function GameClient({ roomId, nickname }: Props) {
           className="mx-auto block h-auto w-full max-w-[420px] touch-none"
         />
         {over && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-slate-950/92 p-4 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-slate-950/92 p-4 pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1rem,env(safe-area-inset-bottom,0px))] text-center">
             <p className="text-xl font-bold text-white">GAME OVER</p>
             <p className="text-slate-400">
               점수 <span className="text-white">{over.score}</span> · 레벨{" "}

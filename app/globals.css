@@ -2,8 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+/* iOS 노치·홈 인디케이터 / Android 내비게이션 바와 겹침 방지 */
+@layer utilities {
+  .safe-area-page {
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .safe-area-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 body {
@@ -11,5 +25,7 @@ body {
 }
 
 .touch-pad {
-  padding-bottom: var(--safe-bottom);
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
 }

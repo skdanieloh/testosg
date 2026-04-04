@@ -27,14 +27,14 @@ export default function GamePage({ params }: PageProps) {
 
   if (!ready || !nickname) {
     return (
-      <main className="mx-auto max-w-lg px-4 pt-16">
+      <main className="safe-area-page mx-auto max-w-lg">
         <Loading label="입장 확인 중…" />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-4 px-4 pb-20 pt-6">
+    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <Link href={`/room/${roomId}`} className="text-sm text-sky-400">
           ← 방

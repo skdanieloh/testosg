@@ -43,7 +43,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-lg flex-col items-center justify-center gap-8 px-4 pb-16 pt-8">
+    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col items-center justify-center gap-8">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white sm:text-3xl">
           아케이드 방 경쟁

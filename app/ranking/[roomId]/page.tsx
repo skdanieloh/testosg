@@ -19,7 +19,7 @@ export default function RankingPage({ params }: PageProps) {
   }, [roomId]);
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-4 px-4 pb-16 pt-8">
+    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-4">
       <div>
         <Link href="/" className="text-sm text-sky-400">
           ← 처음으로
@@ -42,18 +42,18 @@ export default function RankingPage({ params }: PageProps) {
         <RankingTable rows={rows} highlightNickname={me} />
       )}
 
-      <div className="flex flex-col gap-2 pt-4">
+      <div className="mt-auto flex flex-col gap-2 pt-4">
         <Link
-          href={`/room/${roomId}`}
-          className="rounded-2xl border border-slate-600 py-3 text-center text-base font-semibold text-slate-200"
+          href="/"
+          className="rounded-2xl border border-slate-600 py-3 text-center text-base font-semibold text-slate-200 active:bg-slate-800"
         >
-          방으로 돌아가기
+          게임 종료
         </Link>
         <Link
           href={`/game/${roomId}`}
-          className="rounded-2xl bg-sky-600 py-3 text-center text-base font-semibold text-white"
+          className="rounded-2xl bg-sky-600 py-3 text-center text-base font-semibold text-white active:bg-sky-700"
         >
-          게임 하기
+          이 방에서 게임 계속하기
         </Link>
       </div>
     </main>

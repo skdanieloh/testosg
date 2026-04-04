@@ -58,7 +58,7 @@ export default function RoomPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-6 px-4 pb-16 pt-8">
+    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-6">
       <div>
         <Link
           href="/"
