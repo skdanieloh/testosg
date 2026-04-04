@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/room.js": {
-      "maxDuration": 10
-    }
-  }
-}

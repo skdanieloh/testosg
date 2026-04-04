@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  @apply min-h-[100dvh] bg-slate-950 text-slate-100 antialiased;
+}
+
+.touch-pad {
+  padding-bottom: var(--safe-bottom);
+}
