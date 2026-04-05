@@ -1,15 +1,35 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+/**
+ * OG·Twitter·카카오 링크 미리보기는 og:image 가 **공유한 URL과 같은 호스트**인 쪽이 안전함.
+ * Vercel 빌드만 쓰면 VERCEL_URL 이 배포별 프리뷰 도메인이라 og:image 가 testosg.vercel.app 과 달라질 수 있음 → 카카오 썸네일 실패 원인.
+ * 우선순위: NEXT_PUBLIC_SITE_URL → 프로덕션 호스트(VERCEL_PROJECT_PRODUCTION_URL) → 배포 URL(VERCEL_URL).
+ */
+function siteOrigin(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+  if (
+    process.env.VERCEL_ENV === "production" &&
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
+}
 
-/** OG/Twitter 절대 URL 생성. 배포 도메인은 NEXT_PUBLIC_SITE_URL 권장. */
-const metadataBase = new URL(siteUrl ?? "http://localhost:3000");
+const metadataBase = new URL(siteOrigin());
 
 export const metadata: Metadata = {
   metadataBase,
+  alternates: {
+    canonical: "/",
+  },
   title: {
     default: "칼치기 레이싱",
     template: "%s · 칼치기 레이싱",
@@ -20,6 +40,7 @@ export const metadata: Metadata = {
   authors: [{ name: "오승균" }],
   openGraph: {
     type: "website",
+    url: "/",
     locale: "ko_KR",
     siteName: "칼치기 레이싱",
     title: "칼치기 레이싱",
