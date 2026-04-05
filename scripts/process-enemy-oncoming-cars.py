@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-탑뷰 맞은편(온커밝) 차량 PNG — 흰 배경 제거 → 알파 → 크롭 → 색상 변형 PNG 여러 장.
+탑뷰 맞은편(온커밝) 차량 PNG — 흰 배경 제거 → 알파로 차량 영역만 크롭 →
+플레이어 차 스프라이트와 동일 픽셀 크기로 맞춤 → 색상 변형 PNG 여러 장.
+
+- 크롭: 투명이 아닌 픽셀의 최소 바운딩 박스만 사용(정사각 패딩 없음).
+- 리사이즈: public/images/player-car.png 와 같은 (가로×세로)로 맞춰,
+  게임에서 플레이어와 비슷한 스케일로 보이고 세로가 더 긴 비율을 갖게 함.
 
 사용:
-  python3 scripts/process-enemy-oncoming-cars.py assets/enemy-oncoming-source.png public/images
+  python3 scripts/process-enemy-oncoming-cars.py assets/enemy-oncoming-source.png public/images \\
+    [player-car.png 경로]
 
-원본 비율은 크롭 후 픽셀 그대로 유지(게임에서 contain 스케일).
+player 경로 생략 시 public/images/player-car.png 사용.
 """
 from __future__ import annotations
 
@@ -68,7 +74,7 @@ def flood_edge_background_rgba(im: Image.Image) -> Image.Image:
 
 
 def crop_alpha_bbox(im: Image.Image) -> Image.Image:
-    """완전 투명이 아닌 픽셀의 바운딩 박스로 자름."""
+    """완전 투명이 아닌 픽셀의 바운딩 박스로만 자름(차량 실루엣만, 정사각 강제 없음)."""
     if im.mode != "RGBA":
         im = im.convert("RGBA")
     a = im.split()[-1]
@@ -76,6 +82,22 @@ def crop_alpha_bbox(im: Image.Image) -> Image.Image:
     if bbox is None:
         return im
     return im.crop(bbox)
+
+
+def resize_to_player_sheet(
+    im: Image.Image,
+    player_path: Path,
+) -> Image.Image:
+    """
+    플레이어 스프라이트와 동일 해상도로 스케일.
+    크롭이 정사각이어도 플레이어와 같은 세로가 긴 캔버스 비율로 맞춤(게임에서 유사 크기·비율).
+    """
+    if not player_path.is_file():
+        raise FileNotFoundError(f"player sprite not found: {player_path}")
+    ref = Image.open(player_path).convert("RGBA")
+    tw, th = ref.size
+    ref.close()
+    return im.resize((tw, th), Image.Resampling.LANCZOS)
 
 
 def tint_body(
@@ -124,17 +146,25 @@ VARIANTS: list[tuple[str, float, float, float]] = [
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
         print(__doc__, file=sys.stderr)
         sys.exit(1)
     src = Path(sys.argv[1])
     out_dir = Path(sys.argv[2])
+    player_ref = (
+        Path(sys.argv[3])
+        if len(sys.argv) == 4
+        else out_dir / "player-car.png"
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
 
     base = flood_edge_background_rgba(Image.open(src))
     base = crop_alpha_bbox(base)
     w, h = base.size
-    print(f"Cropped size: {w}x{h}")
+    print(f"Cropped (car alpha bbox only): {w}x{h}, aspect h/w={h / max(w, 1):.4f}")
+    base = resize_to_player_sheet(base, player_ref)
+    w, h = base.size
+    print(f"Scaled to match player sheet: {w}x{h}")
 
     for name, mr, mg, mb in VARIANTS:
         tinted = tint_body(base, mr, mg, mb)
