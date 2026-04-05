@@ -159,6 +159,13 @@ type Enemy = {
   palette: CarSpec;
 };
 
+/** 레벨 10, 20, 30… 마다 +1 (레벨 1~9 → 0) */
+function difficultyTier(level: number): number {
+  return Math.floor(level / 10);
+}
+
+const LEVEL_UP_FLASH_MS = 2200;
+
 export type GameCallbacks = {
   onFrame: (state: {
     score: number;
@@ -195,9 +202,20 @@ export function createGame(
   let level = 1;
   let difficulty = 1;
   let spawnAcc = 0;
+  let prevLevel = 1;
+  let levelUpFlashUntil = 0;
   const enemies: Enemy[] = [];
 
   const laneCenterX = (i: number) => ROAD_MARGIN + LANE_WIDTH * (i + 0.5);
+
+  function shuffleLanes(): number[] {
+    const a = [0, 1, 2];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j]!, a[i]!];
+    }
+    return a;
+  }
 
   function syncPlayerX(dt: number) {
     const target = laneCenterX(laneIndex);
@@ -207,16 +225,20 @@ export function createGame(
     else playerX += Math.sign(dx) * Math.min(Math.abs(dx), speed * dt);
   }
 
-  function spawnEnemy() {
-    const lane = Math.floor(Math.random() * LANE_COUNT);
+  function spawnEnemyAtLane(lane: number, tier: number) {
     const jitter = (Math.random() - 0.5) * LANE_WIDTH * 0.35;
     const x = laneCenterX(lane) + jitter;
     const palette =
       ENEMY_PALETTES[Math.floor(Math.random() * ENEMY_PALETTES.length)];
     const baseVy = 150 + level * 32 + survivalTime * 2.5;
-    const vy = baseVy + Math.random() * (70 + level * 8);
-    const vx = (Math.random() - 0.5) * (38 + level * 4);
-    enemies.push({ x, y: -ENEMY_H - 20, vy, vx, palette });
+    let vy = baseVy + Math.random() * (70 + level * 8);
+    const fastChance = Math.min(0.5, 0.1 + tier * 0.07);
+    if (Math.random() < fastChance) {
+      vy *= 1.35 + Math.random() * 1.15;
+    }
+    const vx = (Math.random() - 0.5) * (38 + level * 4 + tier * 6);
+    const yOffset = Math.random() * 55;
+    enemies.push({ x, y: -ENEMY_H - 20 - yOffset, vy, vx, palette });
   }
 
   function rectsOverlap(
@@ -262,19 +284,36 @@ export function createGame(
 
     survivalTime += dt;
     level = 1 + Math.floor(survivalTime / 12);
-    difficulty = 1 + (level - 1) * 0.5 + survivalTime * 0.035;
-    const scrollSpeed = 260 + level * 55 + survivalTime * 3;
+    if (level > prevLevel) {
+      const oldM = Math.floor(prevLevel / 10);
+      const newM = Math.floor(level / 10);
+      if (newM > oldM && level >= 10) {
+        levelUpFlashUntil = ts + LEVEL_UP_FLASH_MS;
+      }
+      prevLevel = level;
+    }
+
+    const tier = difficultyTier(level);
+    difficulty = 1 + (level - 1) * 0.5 + survivalTime * 0.035 + tier * 0.35;
+    const scrollSpeed = 260 + level * 55 + survivalTime * 3 + tier * 40;
     roadOffset += scrollSpeed * dt;
     syncPlayerX(dt);
 
     spawnAcc += dt;
     const interval = Math.max(
-      0.28,
-      1.45 - level * 0.07 - survivalTime * 0.012
+      0.22,
+      1.45 -
+        level * 0.07 -
+        survivalTime * 0.012 -
+        tier * 0.09
     );
     if (spawnAcc >= interval) {
       spawnAcc = 0;
-      spawnEnemy();
+      const spawnsPerTick = 1 + tier;
+      const lanes = shuffleLanes();
+      for (let i = 0; i < spawnsPerTick; i++) {
+        spawnEnemyAtLane(lanes[i % LANE_COUNT]!, tier);
+      }
     }
 
     for (const e of enemies) {
@@ -313,6 +352,38 @@ export function createGame(
     const spec = PLAYER_CARS[options.carIndex] ?? PLAYER_CARS[0];
     drawCar(ctx, playerX, PLAYER_Y, PLAYER_W, PLAYER_H, spec, 1);
 
+    if (ts < levelUpFlashUntil) {
+      ctx.save();
+      const alpha = 0.28 + 0.12 * Math.sin(ts * 0.012);
+      ctx.fillStyle = `rgba(0,0,0,${Math.min(0.5, alpha + 0.2)})`;
+      ctx.fillRect(0, 0, W, H);
+      const cx = W / 2;
+      const cy = H / 2 - 24;
+      ctx.font =
+        '900 56px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = "#0f172a";
+      ctx.strokeText("LEVEL UP!!", cx, cy);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "#1e293b";
+      ctx.strokeText("LEVEL UP!!", cx, cy);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillText("LEVEL UP!!", cx, cy);
+      ctx.font =
+        '700 18px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+      ctx.fillStyle = "rgba(248,250,252,0.92)";
+      ctx.fillText(
+        `레벨 ${level} 돌파 · 차 증가 & 고속 차 혼입`,
+        cx,
+        cy + 52
+      );
+      ctx.restore();
+    }
+
     raf = requestAnimationFrame(frame);
   }
 
@@ -328,6 +399,8 @@ export function createGame(
       level = 1;
       difficulty = 1;
       spawnAcc = 0;
+      prevLevel = 1;
+      levelUpFlashUntil = 0;
       enemies.length = 0;
       lastTs = performance.now();
       raf = requestAnimationFrame(frame);
