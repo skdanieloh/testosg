@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ROOM_TTL_SEC = 60 * 60 * 24 * 7;
-const MAX_MEMBERS = 10;
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -27,7 +26,7 @@ function sanitizeName(name: unknown): string {
   return name.trim().slice(0, 24);
 }
 
-export type MemberStatus = "pending" | "approved";
+type MemberStatus = "pending" | "approved";
 
 type Member = {
   status: MemberStatus;
@@ -43,7 +42,6 @@ type RoomDoc = {
   members: Record<string, Member>;
 };
 
-/** 구 데이터( status / phase 없음 ) 호환: status 없으면 approved */
 function normalizeMemberFromRedis(m: unknown): Member {
   if (!m || typeof m !== "object") {
     return {
@@ -57,7 +55,7 @@ function normalizeMemberFromRedis(m: unknown): Member {
   const hasStatus = "status" in o;
   const status: MemberStatus =
     o.status === "approved" ? "approved" : "pending";
-  const base: Member = {
+  const base = {
     status,
     bestScore: Number.isFinite(o.bestScore) ? Number(o.bestScore) : 0,
     bestLevel: Number.isFinite(o.bestLevel) ? Number(o.bestLevel) : 0,
@@ -75,11 +73,10 @@ function migrateRoom(parsed: unknown): RoomDoc {
   for (const [k, v] of Object.entries(o.members || {})) {
     members[k] = normalizeMemberFromRedis(v);
   }
-  const phase = o.phase === "playing" ? "playing" : "lobby";
   return {
     id: MAIN_ROOM_ID,
     createdAt: Number.isFinite(o.createdAt) ? Number(o.createdAt) : Date.now(),
-    phase,
+    phase: o.phase === "playing" ? "playing" : "lobby",
     members,
   };
 }
@@ -103,61 +100,51 @@ async function getOrCreateMainRoom(
     await redis.set(key, JSON.stringify(room), "EX", ROOM_TTL_SEC);
     return room;
   }
-  const room = migrateRoom(JSON.parse(raw));
-  await redis.set(key, JSON.stringify(room), "EX", ROOM_TTL_SEC);
-  return room;
+  return migrateRoom(JSON.parse(raw));
 }
 
 async function saveRoom(
   redis: NonNullable<ReturnType<typeof getRedisClient>>,
   room: RoomDoc
 ) {
-  const key = mainRoomRedisKey();
-  await redis.set(key, JSON.stringify(room), "EX", ROOM_TTL_SEC);
+  await redis.set(mainRoomRedisKey(), JSON.stringify(room), "EX", ROOM_TTL_SEC);
 }
 
-function recordImproves(
-  level: number,
-  score: number,
-  prev: Member
-): boolean {
-  if (level > prev.bestLevel) return true;
-  if (level < prev.bestLevel) return false;
-  return score > prev.bestScore;
+function checkAdmin(req: NextRequest): "ok" | "unauthorized" | "disabled" {
+  const envKey = process.env.ADMIN_KEY?.trim();
+  if (!envKey) return "disabled";
+  const h = req.headers.get("x-admin-key")?.trim();
+  if (h === envKey) return "ok";
+  const auth = req.headers.get("authorization");
+  if (auth?.toLowerCase().startsWith("bearer ")) {
+    if (auth.slice(7).trim() === envKey) return "ok";
+  }
+  return "unauthorized";
 }
 
-export async function GET() {
-  const redis = getRedisClient();
-  if (!redis) {
+export async function POST(req: NextRequest) {
+  const gate = checkAdmin(req);
+  if (gate === "disabled") {
     return json(
       {
         ok: false,
-        error: "not_configured",
-        message:
-          "REDIS_URL(또는 REDIS_HOST+REDIS_PASSWORD+REDIS_TLS)이 설정되지 않았습니다.",
+        error: "admin_disabled",
+        message: "서버에 ADMIN_KEY 환경 변수가 설정되어 있지 않습니다.",
       },
       503
     );
   }
-
-  try {
-    const room = await getOrCreateMainRoom(redis);
-    return json({ ok: true, room });
-  } catch (err) {
-    console.error("[api/room GET]", err);
-    return json(redisErrorPayload(err), 503);
+  if (gate === "unauthorized") {
+    return json({ ok: false, error: "unauthorized" }, 401);
   }
-}
 
-export async function POST(req: NextRequest) {
   const redis = getRedisClient();
   if (!redis) {
     return json(
       {
         ok: false,
         error: "not_configured",
-        message:
-          "Redis 연결 정보 없음: Vercel에 REDIS_URL을 설정하세요 (Redis Cloud Connect의 rediss:// URL).",
+        message: "Redis 연결 정보가 없습니다.",
       },
       503
     );
@@ -173,81 +160,49 @@ export async function POST(req: NextRequest) {
   const action = body.action;
 
   try {
-    if (action === "join") {
+    if (action === "get") {
+      const room = await getOrCreateMainRoom(redis);
+      return json({ ok: true, room });
+    }
+
+    if (action === "approve") {
       const name = sanitizeName(body.name);
       if (!name) {
         return json({ ok: false, error: "invalid_params" }, 400);
       }
       const room = await getOrCreateMainRoom(redis);
-      const memberKeys = Object.keys(room.members);
-      if (!room.members[name] && memberKeys.length >= MAX_MEMBERS) {
-        return json({ ok: false, error: "room_full" }, 400);
-      }
       if (!room.members[name]) {
-        room.members[name] = {
-          status: "pending",
-          bestScore: 0,
-          bestLevel: 0,
-          updatedAt: Date.now(),
-        };
-      } else {
-        room.members[name] = normalizeMemberFromRedis(room.members[name]);
+        return json({ ok: false, error: "not_found" }, 404);
       }
+      const m = normalizeMemberFromRedis(room.members[name]);
+      room.members[name] = { ...m, status: "approved" };
       await saveRoom(redis, room);
       return json({ ok: true, room });
     }
 
-    if (action === "score") {
-      const name = sanitizeName(body.name);
-      const score = Number(body.score);
-      const level = Number(body.level);
-      if (!name || !Number.isFinite(score) || score < 0) {
-        return json({ ok: false, error: "invalid_params" }, 400);
-      }
-      const levelVal =
-        Number.isFinite(level) && level >= 0 ? Math.floor(level) : 0;
-      const scoreVal = Math.floor(score);
-
+    if (action === "start") {
       const room = await getOrCreateMainRoom(redis);
-      const member = normalizeMemberFromRedis(room.members[name]);
-      if (!room.members[name]) {
-        return json({ ok: false, error: "not_member" }, 400);
-      }
-      if (member.status !== "approved") {
-        return json({ ok: false, error: "not_approved" }, 403);
-      }
-      if (room.phase !== "playing") {
-        return json({ ok: false, error: "not_playing" }, 400);
-      }
-
-      const prev = normalizeMemberFromRedis(room.members[name]);
-      if (!recordImproves(levelVal, scoreVal, prev)) {
-        await saveRoom(redis, room);
-        return json({
-          ok: true,
-          room,
-          submitted: null,
-          message: "기존 기록보다 낮아 반영하지 않았습니다.",
-        });
-      }
-
-      room.members[name] = {
-        ...prev,
-        bestScore: scoreVal,
-        bestLevel: levelVal,
-        updatedAt: Date.now(),
-      };
+      room.phase = "playing";
       await saveRoom(redis, room);
-      return json({
-        ok: true,
-        room,
-        submitted: { score: scoreVal, level: levelVal },
-      });
+      return json({ ok: true, room });
+    }
+
+    if (action === "stop") {
+      const room = await getOrCreateMainRoom(redis);
+      room.phase = "lobby";
+      await saveRoom(redis, room);
+      return json({ ok: true, room });
+    }
+
+    if (action === "reset") {
+      const room = emptyRoom();
+      await saveRoom(redis, room);
+      return json({ ok: true, room });
     }
 
     return json({ ok: false, error: "unknown_action" }, 400);
   } catch (err) {
-    console.error("[api/room POST]", action, err);
+    console.error("[api/admin POST]", action, err);
     return json(redisErrorPayload(err), 503);
   }
 }

@@ -11,11 +11,10 @@ import { sortRecords } from "@/lib/ranking";
 import type { RecordRow } from "@/types/record";
 
 type Props = {
-  roomId: string;
   nickname: string;
 };
 
-export function GameClient({ roomId, nickname }: Props) {
+export function GameClient({ nickname }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameController | null>(null);
   const [replayId, setReplayId] = useState(0);
@@ -28,11 +27,13 @@ export function GameClient({ roomId, nickname }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const loadRanking = useCallback(async () => {
-    const { ok, data } = await apiGetRoom(roomId);
+    const { ok, data } = await apiGetRoom();
     if (ok && data?.ok && data.room) {
-      setRankSnapshot(sortRecords(roomToRecordRows(roomId, data.room)));
+      setRankSnapshot(
+        sortRecords(roomToRecordRows(data.room, { approvedOnly: true }))
+      );
     }
-  }, [roomId]);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -49,7 +50,6 @@ export function GameClient({ roomId, nickname }: Props) {
           try {
             const { ok, data } = await apiPostRoom({
               action: "score",
-              roomId,
               name: nickname,
               score: result.score,
               level: result.level,
@@ -69,7 +69,7 @@ export function GameClient({ roomId, nickname }: Props) {
       game.stop();
       gameRef.current = null;
     };
-  }, [roomId, nickname, replayId, loadRanking]);
+  }, [nickname, replayId, loadRanking]);
 
   const move = (d: -1 | 1) => gameRef.current?.moveLane(d);
 
@@ -116,7 +116,7 @@ export function GameClient({ roomId, nickname }: Props) {
             </div>
             <div className="mt-3 flex w-full max-w-xs flex-col gap-2">
               <Link
-                href={`/ranking/${roomId}`}
+                href="/ranking"
                 className="rounded-2xl bg-sky-600 py-3 text-center text-base font-semibold text-white"
               >
                 전체 랭킹

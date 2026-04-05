@@ -1,74 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiPostRoom } from "@/lib/api/roomClient";
+import Link from "next/link";
 
 export default function HomePage() {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  async function createRoom() {
-    setErr(null);
-    setBusy(true);
-    try {
-      const { ok, data, status } = await apiPostRoom({ action: "create" });
-      const d = data as {
-        ok?: boolean;
-        error?: string;
-        message?: string;
-        roomId?: string;
-      };
-      if (!ok || !d?.ok) {
-        if (status === 503) {
-          setErr(
-            d?.message ||
-              "Redis에 연결할 수 없습니다. Vercel에 REDIS_URL을 설정하고, Redis Cloud에서 네트워크(방화벽)가 Vercel IP를 허용하는지 확인하세요."
-          );
-          return;
-        }
-        if (d?.error === "redis_error" && d?.message) {
-          setErr(`Redis 오류: ${d.message}`);
-          return;
-        }
-        setErr(d?.message || "방을 만들 수 없습니다.");
-        return;
-      }
-      const roomId = d.roomId as string;
-      router.push(`/room/${roomId}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col items-center justify-center gap-8">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white sm:text-3xl">
-          아케이드 방 경쟁
+          아케이드 · 단일 방
         </h1>
         <p className="mt-2 text-sm text-slate-400">
-          QR로 친구를 불러와 같은 방 랭킹을 겨루세요. (Redis Cloud)
+          닉네임으로 입장 후 관리자 승인을 받으면 게임에 참여할 수 있습니다.
         </p>
       </div>
 
-      {err && (
-        <p className="max-w-sm text-center text-sm text-red-400">{err}</p>
-      )}
-
-      <button
-        type="button"
-        onClick={createRoom}
-        disabled={busy}
-        className="w-full max-w-sm rounded-2xl bg-sky-600 py-4 text-lg font-semibold text-white shadow-lg disabled:opacity-50 active:scale-[0.99] touch-manipulation"
-      >
-        {busy ? "만드는 중…" : "방 만들기"}
-      </button>
+      <div className="flex w-full max-w-sm flex-col gap-3">
+        <Link
+          href="/room"
+          className="w-full rounded-2xl bg-sky-600 py-4 text-center text-lg font-semibold text-white shadow-lg active:scale-[0.99] touch-manipulation"
+        >
+          입장하기
+        </Link>
+        <Link
+          href="/ranking"
+          className="w-full rounded-2xl border border-slate-600 py-3 text-center text-base font-semibold text-slate-200 active:bg-slate-800"
+        >
+          랭킹 보기
+        </Link>
+      </div>
 
       <p className="max-w-sm text-center text-xs text-slate-500">
-        방을 만들면 서버(Redis)에 방이 등록되고, QR로 친구가 입장합니다 (최대
-        10명).
+        초대 QR은 입장 페이지(`/room`) 링크입니다. 관리자는{" "}
+        <Link href="/admin" className="text-sky-500 underline">
+          /admin
+        </Link>
+        에서 승인·게임 시작을 진행합니다.
       </p>
     </main>
   );

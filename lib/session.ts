@@ -1,14 +1,16 @@
-const key = (roomId: string) => `arcade:nickname:${roomId}`;
+import { MAIN_ROOM_ID } from "@/lib/room/constants";
 
-export function getStoredNickname(roomId: string): string | null {
+const storageKey = `arcade:nickname:${MAIN_ROOM_ID}`;
+
+export function getStoredNickname(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(key(roomId));
+  return sessionStorage.getItem(storageKey);
 }
 
-export function setStoredNickname(roomId: string, nickname: string) {
-  sessionStorage.setItem(key(roomId), nickname);
+export function setStoredNickname(nickname: string) {
+  sessionStorage.setItem(storageKey, nickname);
 }
 
-export function clearStoredNickname(roomId: string) {
-  sessionStorage.removeItem(key(roomId));
+export function clearStoredNickname() {
+  sessionStorage.removeItem(storageKey);
 }

@@ -6,15 +6,16 @@ import { roomToRecordRows } from "@/lib/records/mapRoom";
 import { sortRecords } from "@/lib/ranking";
 import type { RecordRow } from "@/types/record";
 
-const POLL_MS = 4000;
+const POLL_MS = 1000;
 
-export function useRoomRecords(roomId: string) {
+/** 승인된 멤버만 랭킹 행으로 (공개 랭킹용) */
+export function useRoomRecords() {
   const [rows, setRows] = useState<RecordRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRows = useCallback(async () => {
-    const { ok, status, data } = await apiGetRoom(roomId);
+    const { ok, status, data } = await apiGetRoom();
     if (status === 503 || data?.error === "not_configured") {
       setError(
         (data as { message?: string })?.message ||
@@ -24,15 +25,13 @@ export function useRoomRecords(roomId: string) {
       return;
     }
     if (!ok || !data?.ok || !data.room) {
-      setError(
-        data?.error === "not_found" ? "방을 찾을 수 없습니다." : "불러오기 실패"
-      );
+      setError("불러오기 실패");
       setRows([]);
       return;
     }
     setError(null);
-    setRows(sortRecords(roomToRecordRows(roomId, data.room)));
-  }, [roomId]);
+    setRows(sortRecords(roomToRecordRows(data.room, { approvedOnly: true })));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,14 +39,12 @@ export function useRoomRecords(roomId: string) {
     fetchRows().finally(() => {
       if (!cancelled) setLoading(false);
     });
-    const t = window.setInterval(() => {
-      fetchRows();
-    }, POLL_MS);
+    const t = window.setInterval(fetchRows, POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(t);
     };
-  }, [roomId, fetchRows]);
+  }, [fetchRows]);
 
   return { rows, loading, error, refetch: fetchRows };
 }
