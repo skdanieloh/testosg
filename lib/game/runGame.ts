@@ -28,8 +28,10 @@ const ROAD_MARGIN = 32;
 const LANE_COUNT = 5;
 const LANE_WIDTH = (W - ROAD_MARGIN * 2) / LANE_COUNT;
 const PLAYER_Y = H - 120;
-const PLAYER_W = 44;
-const PLAYER_H = 72;
+const PLAYER_W = 46;
+const PLAYER_H = 76;
+/** 플레이어 차량 스프라이트 (public/) */
+const PLAYER_SPRITE_SRC = "/images/player-car.png";
 const ENEMY_W = 42;
 const ENEMY_H = 68;
 
@@ -83,6 +85,21 @@ function drawCar(
   c.fillRect(w / 2 - 6, -wheelY, 8, 14);
   c.fillRect(-w / 2 - 2, wheelY - 14, 8, 14);
   c.fillRect(w / 2 - 6, wheelY - 14, 8, 14);
+  c.restore();
+}
+
+function drawPlayerSprite(
+  c: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  w: number,
+  h: number,
+  img: HTMLImageElement
+) {
+  c.save();
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = "high";
+  c.drawImage(img, cx - w / 2, cy - h / 2, w, h);
   c.restore();
 }
 
@@ -193,6 +210,16 @@ export function createGame(
 ): GameController {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context");
+
+  const playerSprite = new Image();
+  let playerSpriteReady = false;
+  playerSprite.onload = () => {
+    playerSpriteReady = true;
+  };
+  playerSprite.onerror = () => {
+    playerSpriteReady = false;
+  };
+  playerSprite.src = PLAYER_SPRITE_SRC;
 
   let running = false;
   let raf = 0;
@@ -358,8 +385,19 @@ export function createGame(
     for (const e of enemies) {
       drawCar(ctx, e.x, e.y, ENEMY_W, ENEMY_H, e.palette, -1);
     }
-    const spec = PLAYER_CARS[options.carIndex] ?? PLAYER_CARS[0];
-    drawCar(ctx, playerX, PLAYER_Y, PLAYER_W, PLAYER_H, spec, 1);
+    if (playerSpriteReady && playerSprite.naturalWidth > 0) {
+      drawPlayerSprite(
+        ctx,
+        playerX,
+        PLAYER_Y,
+        PLAYER_W,
+        PLAYER_H,
+        playerSprite
+      );
+    } else {
+      const spec = PLAYER_CARS[options.carIndex] ?? PLAYER_CARS[0];
+      drawCar(ctx, playerX, PLAYER_Y, PLAYER_W, PLAYER_H, spec, 1);
+    }
 
     if (ts < milestoneBannerUntil) {
       ctx.save();
