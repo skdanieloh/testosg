@@ -22,11 +22,23 @@ from pathlib import Path
 from PIL import Image
 
 
-def is_background_rgb(r: int, g: int, b: int) -> bool:
-    """스튜디오 흰·연회색 배경(가장자리에서 flood). 차량 본체는 보통 대비/채도가 남음."""
+def is_light_background_rgb(r: int, g: int, b: int) -> bool:
+    """스튜디오 흰·연회색 배경(가장자리에서 flood)."""
     avg = (r + g + b) / 3
     spread = max(r, g, b) - min(r, g, b)
     return avg >= 232 and spread <= 32
+
+
+def is_dark_background_rgb(r: int, g: int, b: int) -> bool:
+    """검정·거의 검정 레터박스/마스(가장자리에서 flood). 소스가 흰차인 경우 테두리가 검정인 경우가 많음."""
+    avg = (r + g + b) / 3
+    spread = max(r, g, b) - min(r, g, b)
+    return avg < 42 and spread <= 36
+
+
+def is_flood_background_rgb(r: int, g: int, b: int) -> bool:
+    """가장자리에서 한 덩어리로 제거할 배경(밝은 스튜디오 또는 검정 프레임)."""
+    return is_light_background_rgb(r, g, b) or is_dark_background_rgb(r, g, b)
 
 
 def flood_edge_background_rgba(im: Image.Image) -> Image.Image:
@@ -41,13 +53,13 @@ def flood_edge_background_rgba(im: Image.Image) -> Image.Image:
     for x in range(w):
         for y in (0, h - 1):
             r, g, b = px[x, y]
-            if is_background_rgb(r, g, b) and not bg[y][x]:
+            if is_flood_background_rgb(r, g, b) and not bg[y][x]:
                 bg[y][x] = True
                 q.append((x, y))
     for y in range(h):
         for x in (0, w - 1):
             r, g, b = px[x, y]
-            if is_background_rgb(r, g, b) and not bg[y][x]:
+            if is_flood_background_rgb(r, g, b) and not bg[y][x]:
                 bg[y][x] = True
                 q.append((x, y))
 
@@ -57,7 +69,7 @@ def flood_edge_background_rgba(im: Image.Image) -> Image.Image:
             if nx < 0 or nx >= w or ny < 0 or ny >= h or bg[ny][nx]:
                 continue
             r, g, b = px[nx, ny]
-            if is_background_rgb(r, g, b):
+            if is_flood_background_rgb(r, g, b):
                 bg[ny][nx] = True
                 q.append((nx, ny))
 
@@ -90,14 +102,20 @@ def resize_to_player_sheet(
 ) -> Image.Image:
     """
     플레이어 스프라이트와 동일 해상도로 스케일.
-    크롭이 정사각이어도 플레이어와 같은 세로가 긴 캔버스 비율로 맞춤(게임에서 유사 크기·비율).
+    RGBA를 한 번에 resize하면 투명 영역이 검정 불투명으로 섞이는 경우가 있어 채널 분리 후 합성.
     """
     if not player_path.is_file():
         raise FileNotFoundError(f"player sprite not found: {player_path}")
     ref = Image.open(player_path).convert("RGBA")
     tw, th = ref.size
     ref.close()
-    return im.resize((tw, th), Image.Resampling.LANCZOS)
+    im = im.convert("RGBA")
+    r, g, b, a = im.split()
+    r = r.resize((tw, th), Image.Resampling.LANCZOS)
+    g = g.resize((tw, th), Image.Resampling.LANCZOS)
+    b = b.resize((tw, th), Image.Resampling.LANCZOS)
+    a = a.resize((tw, th), Image.Resampling.LANCZOS)
+    return Image.merge("RGBA", (r, g, b, a))
 
 
 def tint_body(

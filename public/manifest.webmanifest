@@ -1,0 +1,29 @@
+{
+  "name": "칼치기 레이싱",
+  "short_name": "칼치기 레이싱",
+  "description": "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 오승균이 만든 첫 게임! 친구들과 랭킹을 겨뤄보자고!",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

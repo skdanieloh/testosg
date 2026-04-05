@@ -7,10 +7,10 @@ export default function HomePage() {
     <main className="app-shell flex-col items-center justify-center gap-6 sm:gap-8">
       <div className="text-center">
         <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-          아케이드 · 단일 방
+          칼치기 레이싱
         </h1>
         <p className="mt-2 text-sm text-slate-400/95">
-          닉네임으로 입장 후 관리자 승인을 받으면 게임에 참여할 수 있습니다.
+          이름 입력 후 입장하면 오승균의 승인을 받아야 게임에 참여할 수 있습니다.
         </p>
       </div>
 
@@ -25,14 +25,6 @@ export default function HomePage() {
           랭킹 보기
         </Link>
       </div>
-
-      <p className="max-w-sm text-center text-xs leading-relaxed text-slate-500">
-        초대 QR은 입장 페이지(`/room`) 링크입니다. 관리자는{" "}
-        <Link href="/admin" className="glass-link font-medium underline-offset-2">
-          /admin
-        </Link>
-        에서 승인·게임 시작을 진행합니다.
-      </p>
     </main>
   );
 }

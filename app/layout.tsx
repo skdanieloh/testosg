@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s · 칼치기 레이싱",
   },
   description:
-    "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 단일 방 입장·승인 후 점수·레벨 랭킹.",
+    "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 오승균이 만든 첫 게임! 친구들과 랭킹을 겨뤄보자고!",
   applicationName: "칼치기 레이싱",
   authors: [{ name: "오승균" }],
   openGraph: {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "칼치기 레이싱",
     title: "칼치기 레이싱",
     description:
-      "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 단일 방 입장·랭킹.",
+      "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 오승균이 만든 첫 게임! 친구들과 랭킹을 겨뤄보자고!",
     images: [
       {
         url: "/og-image.png",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "칼치기 레이싱",
     description:
-      "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 단일 방 입장·랭킹.",
+      "고속도로를 질주하며 장애물을 피하는 아케이드 레이싱. 오승균이 만든 첫 게임! 친구들과 랭킹을 겨뤄보자고!",
     images: ["/og-image.png"],
   },
   icons: {
@@ -50,6 +50,8 @@ export const metadata: Metadata = {
     title: "칼치기 레이싱",
     statusBarStyle: "black-translucent",
   },
+  /** app/manifest.ts 대신 정적 파일 — 하위 세그먼트에서 manifest 덮어쓰기 가능 */
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
