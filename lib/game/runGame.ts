@@ -12,11 +12,25 @@ export const PLAYER_CARS: CarSpec[] = [
   { body: "#2d8f4e", roof: "#1a5c32", window: "#c8e8d8" },
 ];
 
-const ENEMY_PALETTES: CarSpec[] = [
-  { body: "#e8a030", roof: "#b07010", window: "#333" },
-  { body: "#9b59b6", roof: "#6c3483", window: "#ddd" },
-  { body: "#ecf0f1", roof: "#95a5a6", window: "#2c3e50" },
-  { body: "#f39c12", roof: "#b9770e", window: "#2c3e50" },
+/** 맞은편 차량 스프라이트 (process-enemy-oncoming-cars.py 생성, 크롭 후 비율 유지) */
+const ENEMY_SPRITE_SRCS = [
+  "/images/enemy-oncoming-white.png",
+  "/images/enemy-oncoming-silver.png",
+  "/images/enemy-oncoming-graphite.png",
+  "/images/enemy-oncoming-blue.png",
+  "/images/enemy-oncoming-red.png",
+  "/images/enemy-oncoming-yellow.png",
+  "/images/enemy-oncoming-emerald.png",
+] as const;
+
+const ENEMY_FALLBACK_PALETTES: CarSpec[] = [
+  { body: "#e8e8ec", roof: "#c8c8d0", window: "#333" },
+  { body: "#b8bcc4", roof: "#9096a0", window: "#333" },
+  { body: "#4a4d54", roof: "#2f3238", window: "#ddd" },
+  { body: "#4a7dd0", roof: "#2d5598", window: "#333" },
+  { body: "#d05050", roof: "#902020", window: "#333" },
+  { body: "#e8d060", roof: "#b89820", window: "#333" },
+  { body: "#40b080", roof: "#207050", window: "#333" },
 ];
 
 /** 논리 해상도 — 모바일에서 CSS로 가로 100% 스케일 (5차선·넓은 도로) */
@@ -28,6 +42,7 @@ const ROAD_MARGIN = 32;
 const LANE_COUNT = 5;
 const LANE_WIDTH = (W - ROAD_MARGIN * 2) / LANE_COUNT;
 const PLAYER_Y = H - 120;
+/** 플레이어 스프라이트가 들어갈 최대 박스 (비율은 원본 유지, contain) */
 const PLAYER_W = 46;
 const PLAYER_H = 76;
 /** 플레이어 차량 스프라이트 (public/) */
@@ -88,7 +103,26 @@ function drawCar(
   c.restore();
 }
 
-function drawPlayerSprite(
+/** 원본 픽셀 비율 유지, maxW×maxH 박스에 contain */
+function spriteDrawSizeInBox(
+  img: HTMLImageElement,
+  maxW: number,
+  maxH: number
+): { w: number; h: number } {
+  const nw = img.naturalWidth;
+  const nh = img.naturalHeight;
+  if (nw <= 0 || nh <= 0) {
+    return { w: maxW, h: maxH };
+  }
+  const scale = Math.min(maxW / nw, maxH / nh);
+  return { w: nw * scale, h: nh * scale };
+}
+
+function spriteDrawSize(img: HTMLImageElement): { w: number; h: number } {
+  return spriteDrawSizeInBox(img, PLAYER_W, PLAYER_H);
+}
+
+function drawImageSprite(
   c: CanvasRenderingContext2D,
   cx: number,
   cy: number,
@@ -104,7 +138,7 @@ function drawPlayerSprite(
   c.imageSmoothingQuality = "high";
   const dx = Math.round(cx - w / 2);
   const dy = Math.round(cy - h / 2);
-  c.drawImage(img, dx, dy, w, h);
+  c.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, w, h);
   c.restore();
 }
 
@@ -181,7 +215,8 @@ type Enemy = {
   y: number;
   vy: number;
   vx: number;
-  palette: CarSpec;
+  /** ENEMY_SPRITE_SRCS 인덱스 */
+  spriteIndex: number;
 };
 
 /** 10레벨마다 +1 (레벨 1~9 → 0, 10~19 → 1, …) */
@@ -234,6 +269,27 @@ export function createGame(
   };
   playerSprite.src = PLAYER_SPRITE_SRC;
 
+  const enemySprites: HTMLImageElement[] = [];
+  let enemySpritesReady = false;
+  let enemyLoadsDone = 0;
+  for (let i = 0; i < ENEMY_SPRITE_SRCS.length; i++) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      enemyLoadsDone += 1;
+      if (enemyLoadsDone >= ENEMY_SPRITE_SRCS.length) {
+        enemySpritesReady = enemySprites.every(
+          (el) => el && el.naturalWidth > 0
+        );
+      }
+    };
+    img.onerror = () => {
+      enemyLoadsDone += 1;
+    };
+    img.src = ENEMY_SPRITE_SRCS[i]!;
+    enemySprites.push(img);
+  }
+
   let running = false;
   let raf = 0;
   let lastTs = 0;
@@ -273,8 +329,7 @@ export function createGame(
   function spawnEnemyAtLane(lane: number, tier: number) {
     const jitter = (Math.random() - 0.5) * LANE_WIDTH * 0.35;
     const x = laneCenterX(lane) + jitter;
-    const palette =
-      ENEMY_PALETTES[Math.floor(Math.random() * ENEMY_PALETTES.length)];
+    const spriteIndex = Math.floor(Math.random() * ENEMY_SPRITE_SRCS.length);
     const baseVy = 150 + level * 32 + survivalTime * 2.5;
     let vy = baseVy + Math.random() * (70 + level * 8);
     const allowFast = level >= 11;
@@ -286,7 +341,7 @@ export function createGame(
     }
     const vx = (Math.random() - 0.5) * (38 + level * 4 + tier * 6);
     const yOffset = Math.random() * 55;
-    enemies.push({ x, y: -ENEMY_H - 20 - yOffset, vy, vx, palette });
+    enemies.push({ x, y: -ENEMY_H - 20 - yOffset, vy, vx, spriteIndex });
   }
 
   function rectsOverlap(
@@ -304,21 +359,31 @@ export function createGame(
 
   function playerHitbox() {
     const shrink = 8;
+    const { w: pw, h: ph } =
+      playerSpriteReady && playerSprite.naturalWidth > 0
+        ? spriteDrawSize(playerSprite)
+        : { w: PLAYER_W, h: PLAYER_H };
     return {
-      x: playerX - PLAYER_W / 2 + shrink / 2,
-      y: PLAYER_Y - PLAYER_H / 2 + shrink / 2,
-      w: PLAYER_W - shrink,
-      h: PLAYER_H - shrink,
+      x: playerX - pw / 2 + shrink / 2,
+      y: PLAYER_Y - ph / 2 + shrink / 2,
+      w: pw - shrink,
+      h: ph - shrink,
     };
   }
 
   function checkCollisions() {
     const p = playerHitbox();
     for (const e of enemies) {
-      const ex = e.x - ENEMY_W / 2 + 5;
-      const ey = e.y - ENEMY_H / 2 + 5;
+      const eimg = enemySprites[e.spriteIndex];
+      const { w: ew, h: eh } =
+        enemySpritesReady && eimg && eimg.naturalWidth > 0
+          ? spriteDrawSizeInBox(eimg, ENEMY_W, ENEMY_H)
+          : { w: ENEMY_W, h: ENEMY_H };
+      const shrink = 10;
+      const ex = e.x - ew / 2 + shrink / 2;
+      const ey = e.y - eh / 2 + shrink / 2;
       if (
-        rectsOverlap(p.x, p.y, p.w, p.h, ex, ey, ENEMY_W - 10, ENEMY_H - 10)
+        rectsOverlap(p.x, p.y, p.w, p.h, ex, ey, ew - shrink, eh - shrink)
       )
         return true;
     }
@@ -396,17 +461,19 @@ export function createGame(
 
     drawRoad(ctx, roadOffset, options.theme);
     for (const e of enemies) {
-      drawCar(ctx, e.x, e.y, ENEMY_W, ENEMY_H, e.palette, -1);
+      const eimg = enemySprites[e.spriteIndex];
+      if (enemySpritesReady && eimg && eimg.naturalWidth > 0) {
+        const { w: ew, h: eh } = spriteDrawSizeInBox(eimg, ENEMY_W, ENEMY_H);
+        drawImageSprite(ctx, e.x, e.y, ew, eh, eimg);
+      } else {
+        const spec =
+          ENEMY_FALLBACK_PALETTES[e.spriteIndex % ENEMY_FALLBACK_PALETTES.length]!;
+        drawCar(ctx, e.x, e.y, ENEMY_W, ENEMY_H, spec, -1);
+      }
     }
     if (playerSpriteReady && playerSprite.naturalWidth > 0) {
-      drawPlayerSprite(
-        ctx,
-        playerX,
-        PLAYER_Y,
-        PLAYER_W,
-        PLAYER_H,
-        playerSprite
-      );
+      const { w: dw, h: dh } = spriteDrawSize(playerSprite);
+      drawImageSprite(ctx, playerX, PLAYER_Y, dw, dh, playerSprite);
     } else {
       const spec = PLAYER_CARS[options.carIndex] ?? PLAYER_CARS[0];
       drawCar(ctx, playerX, PLAYER_Y, PLAYER_W, PLAYER_H, spec, 1);
