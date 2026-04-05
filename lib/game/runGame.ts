@@ -97,9 +97,14 @@ function drawPlayerSprite(
   img: HTMLImageElement
 ) {
   c.save();
+  c.globalAlpha = 1;
+  c.globalCompositeOperation = "source-over";
+  c.filter = "none";
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
-  c.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+  const dx = Math.round(cx - w / 2);
+  const dy = Math.round(cy - h / 2);
+  c.drawImage(img, dx, dy, w, h);
   c.restore();
 }
 
@@ -208,13 +213,21 @@ export function createGame(
     callbacks: GameCallbacks;
   }
 ): GameController {
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: true });
   if (!ctx) throw new Error("2d context");
 
   const playerSprite = new Image();
   let playerSpriteReady = false;
+  playerSprite.crossOrigin = "anonymous";
   playerSprite.onload = () => {
-    playerSpriteReady = true;
+    void playerSprite.decode().then(
+      () => {
+        playerSpriteReady = true;
+      },
+      () => {
+        playerSpriteReady = playerSprite.naturalWidth > 0;
+      }
+    );
   };
   playerSprite.onerror = () => {
     playerSpriteReady = false;
