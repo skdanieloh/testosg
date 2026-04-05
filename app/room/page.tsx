@@ -67,7 +67,7 @@ export default function RoomPage() {
     member?.status === "approved" && room?.phase === "playing";
 
   return (
-    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-6">
+    <main className="app-shell flex-col gap-5 sm:gap-6">
       <div>
         <Link href="/" className="text-sm text-sky-400 hover:underline">
           ← 처음으로

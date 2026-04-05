@@ -123,7 +123,7 @@ export default function AdminPage() {
     : [];
 
   return (
-    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-6">
+    <main className="app-shell flex-col gap-5 sm:gap-6">
       <div className="flex items-start justify-between gap-2">
         <div>
           <Link href="/" className="text-sm text-sky-400">

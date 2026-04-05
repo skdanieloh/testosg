@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col items-center justify-center gap-8">
+    <main className="app-shell flex-col items-center justify-center gap-6 sm:gap-8">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white sm:text-3xl">
           아케이드 · 단일 방
@@ -14,7 +14,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="flex w-full max-w-sm flex-col gap-3">
+      <div className="flex w-full max-w-sm flex-col gap-3 px-1 sm:px-0">
         <Link
           href="/room"
           className="w-full rounded-2xl bg-sky-600 py-4 text-center text-lg font-semibold text-white shadow-lg active:scale-[0.99] touch-manipulation"

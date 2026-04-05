@@ -19,10 +19,13 @@ const ENEMY_PALETTES: CarSpec[] = [
   { body: "#f39c12", roof: "#b9770e", window: "#2c3e50" },
 ];
 
-const W = 420;
-const H = 640;
-const ROAD_MARGIN = 36;
-const LANE_COUNT = 4;
+/** 논리 해상도 — 모바일에서 CSS로 가로 100% 스케일 (5차선·넓은 도로) */
+export const GAME_CANVAS_W = 440;
+export const GAME_CANVAS_H = 640;
+const W = GAME_CANVAS_W;
+const H = GAME_CANVAS_H;
+const ROAD_MARGIN = 32;
+const LANE_COUNT = 5;
 const LANE_WIDTH = (W - ROAD_MARGIN * 2) / LANE_COUNT;
 const PLAYER_Y = H - 120;
 const PLAYER_W = 44;
@@ -211,7 +214,7 @@ export function createGame(
   const laneCenterX = (i: number) => ROAD_MARGIN + LANE_WIDTH * (i + 0.5);
 
   function shuffleLanes(): number[] {
-    const a = [0, 1, 2, 3];
+    const a = Array.from({ length: LANE_COUNT }, (_, i) => i);
     for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [a[i], a[j]] = [a[j]!, a[i]!];

@@ -2,50 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-/* iOS 노치·홈 인디케이터 / Android 내비게이션 바와 겹침 방지 */
-@layer utilities {
-  .safe-area-page {
-    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+/**
+ * 반응형 + safe zone (viewport-fit: cover + env(safe-area-inset-*))
+ * Android 등에서 inset이 0이어도 제스처/내비 영역을 위해 하단 최소값 보강.
+ */
+@layer base {
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
   }
 
+  html {
+    @apply h-full overflow-x-hidden;
+  }
+
+  body {
+    @apply min-h-[100dvh] overflow-x-hidden bg-slate-950 text-slate-100 antialiased;
+    /* 구형 모바일: dvh 미지원 시 대비 */
+    min-height: 100svh;
+  }
+}
+
+@layer components {
+  /**
+   * 모든 페이지 공통: 가로 100%, 큰 화면에서는 읽기 폭만 제한.
+   * 세로는 동적 뷰포트(주소창 등)에 맞춤.
+   */
+  .app-shell {
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    width: 100%;
+    max-width: min(100%, 42rem);
+    min-height: 100dvh;
+    min-height: 100svh;
+    padding-top: max(0.75rem, var(--safe-top));
+    padding-bottom: max(1rem, var(--safe-bottom), 20px);
+    padding-left: max(0.75rem, var(--safe-left));
+    padding-right: max(0.75rem, var(--safe-right));
+  }
+
+  /** 게임: 하단·좌우를 더 타이트하게 + 안드로이드 하단 보강 */
+  .app-shell--game {
+    max-width: min(100%, 48rem);
+    padding-bottom: max(1.75rem, var(--safe-bottom), 36px);
+    padding-left: max(0.5rem, var(--safe-left));
+    padding-right: max(0.5rem, var(--safe-right));
+  }
+}
+
+@layer utilities {
   .safe-area-top {
-    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-top: max(0.75rem, var(--safe-top));
   }
 
   .safe-area-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    padding-bottom: max(1rem, var(--safe-bottom), 20px);
   }
 
-  /**
-   * 게임 화면: iOS는 safe-area로 충분한 경우가 많고,
-   * 갤럭시 등 Android는 inset이 0인데 제스처/내비 바가 있어 겹침이 난다.
-   * 최소 하단 여백을 env와 함께 max로 보장한다.
-   */
-  .game-page-shell {
-    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-    padding-bottom: max(
-      1.75rem,
-      env(safe-area-inset-bottom, 0px),
-      36px
-    );
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  /** 게임 오버레이·모달 등에 재사용 */
+  .pb-safe-game {
+    padding-bottom: max(1.75rem, var(--safe-bottom), 36px);
   }
-}
 
-body {
-  @apply min-h-[100dvh] bg-slate-950 text-slate-100 antialiased;
+  .pt-safe {
+    padding-top: max(1rem, var(--safe-top));
+  }
 }
 
 .touch-pad {
-  padding-bottom: max(
-    0.75rem,
-    env(safe-area-inset-bottom, 0px),
-    28px
-  );
-  padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
-  padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(0.75rem, var(--safe-bottom), 28px);
+  padding-left: max(0.5rem, var(--safe-left));
+  padding-right: max(0.5rem, var(--safe-right));
 }

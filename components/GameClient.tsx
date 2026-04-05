@@ -4,7 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiGetRoom, apiPostRoom } from "@/lib/api/roomClient";
 import { roomToRecordRows } from "@/lib/records/mapRoom";
-import { createGame, type GameController } from "@/lib/game/runGame";
+import {
+  createGame,
+  GAME_CANVAS_H,
+  GAME_CANVAS_W,
+  type GameController,
+} from "@/lib/game/runGame";
 import { TouchPad } from "@/components/TouchPad";
 import { RankingTable } from "@/components/RankingTable";
 import { sortRecords } from "@/lib/ranking";
@@ -79,9 +84,9 @@ export function GameClient({ nickname }: Props) {
   }
 
   return (
-    <div className="flex w-full max-w-lg flex-col items-center gap-3">
+    <div className="flex w-full max-w-full flex-col items-stretch gap-3">
       {!over && (
-        <div className="flex w-full justify-between px-1 text-sm tabular-nums text-slate-400">
+        <div className="flex w-full justify-between px-0.5 text-sm tabular-nums text-slate-300">
           <span>
             점수 <strong className="text-white">{hud.score}</strong>
           </span>
@@ -91,15 +96,15 @@ export function GameClient({ nickname }: Props) {
         </div>
       )}
 
-      <div className="relative w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+      <div className="relative w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-xl">
         <canvas
           ref={canvasRef}
-          width={420}
-          height={640}
-          className="mx-auto block h-auto w-full max-w-[420px] touch-none"
+          width={GAME_CANVAS_W}
+          height={GAME_CANVAS_H}
+          className="block h-auto w-full max-w-none touch-none"
         />
         {over && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-slate-950/92 p-4 pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1rem,env(safe-area-inset-bottom,0px))] text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-slate-950/92 p-4 pt-safe pb-safe-game text-center">
             <p className="text-xl font-bold text-white">GAME OVER</p>
             <p className="text-slate-400">
               점수 <span className="text-white">{over.score}</span> · 레벨{" "}
@@ -109,7 +114,7 @@ export function GameClient({ nickname }: Props) {
               <p className="text-xs text-slate-500">기록 저장 중…</p>
             )}
             <div className="mt-2 w-full max-w-sm text-left">
-              <p className="mb-2 text-xs font-medium text-slate-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
                 방 랭킹
               </p>
               <RankingTable rows={rankSnapshot} highlightNickname={nickname} />

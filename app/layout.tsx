@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="min-h-[100dvh]">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

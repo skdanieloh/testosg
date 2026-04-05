@@ -36,7 +36,7 @@ export default function GamePage() {
 
   if (!nick) {
     return (
-      <main className="game-page-shell mx-auto max-w-lg">
+      <main className="app-shell app-shell--game flex-col">
         <Loading label="확인 중…" />
       </main>
     );
@@ -44,7 +44,7 @@ export default function GamePage() {
 
   if (error) {
     return (
-      <main className="game-page-shell mx-auto max-w-lg">
+      <main className="app-shell app-shell--game flex-col">
         <p className="text-sm text-red-400">{error}</p>
         <Link href="/room" className="mt-4 inline-block text-sky-400">
           ← 입장 화면
@@ -55,7 +55,7 @@ export default function GamePage() {
 
   if (loading && !room) {
     return (
-      <main className="game-page-shell mx-auto max-w-lg">
+      <main className="app-shell app-shell--game flex-col">
         <Loading label="방 상태 확인 중…" />
       </main>
     );
@@ -63,15 +63,15 @@ export default function GamePage() {
 
   if (!allowPlay) {
     return (
-      <main className="game-page-shell mx-auto max-w-lg">
+      <main className="app-shell app-shell--game flex-col">
         <Loading label="입장 확인 중…" />
       </main>
     );
   }
 
   return (
-    <main className="game-page-shell mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
+    <main className="app-shell app-shell--game flex-col gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-2 px-0">
         <Link href="/room" className="text-sm text-sky-400">
           ← 로비
         </Link>

@@ -17,7 +17,7 @@ export default function RankingPage() {
   }, []);
 
   return (
-    <main className="safe-area-page mx-auto flex min-h-[100dvh] max-w-lg flex-col gap-4">
+    <main className="app-shell flex-col gap-4">
       <div>
         <Link href="/" className="text-sm text-sky-400">
           ← 처음으로
