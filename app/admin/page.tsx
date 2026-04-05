@@ -126,7 +126,7 @@ export default function AdminPage() {
     <main className="app-shell flex-col gap-5 sm:gap-6">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <Link href="/" className="text-sm text-sky-400">
+          <Link href="/" className="glass-link text-sm">
             ← 홈
           </Link>
           <h1 className="mt-3 text-xl font-bold text-white">관리자</h1>
@@ -136,7 +136,7 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="shrink-0 text-xs text-slate-500 underline"
+            className="glass-button shrink-0 px-3 py-1.5 text-xs text-slate-300"
           >
             키 지우기
           </button>
@@ -145,7 +145,7 @@ export default function AdminPage() {
 
       <form
         onSubmit={handleSaveKey}
-        className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-slate-900/50 p-4"
+        className="glass glass-elevated flex flex-col gap-2 p-4 sm:p-5"
       >
         <label className="text-xs font-medium text-slate-400">
           관리자 키 (서버 환경 변수 ADMIN_KEY 와 동일)
@@ -156,11 +156,11 @@ export default function AdminPage() {
           value={adminKeyInput}
           onChange={(e) => setAdminKeyInput(e.target.value)}
           placeholder="ADMIN_KEY 입력"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+          className="glass-input px-3 py-2 text-sm"
         />
         <button
           type="submit"
-          className="rounded-xl bg-slate-700 py-2 text-sm font-semibold text-white"
+          className="glass-button py-2.5 text-sm text-slate-100"
         >
           키 저장 후 연결
         </button>
@@ -175,14 +175,14 @@ export default function AdminPage() {
 
       {adminKey && loading && !room && <Loading label="불러오는 중…" />}
       {err && (
-        <p className="rounded-xl border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">
+        <p className="glass rounded-xl border-red-500/30 bg-red-950/40 p-3 text-sm text-red-200 backdrop-blur-xl">
           {err}
         </p>
       )}
 
       {adminKey && room && (
         <>
-          <section className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+          <section className="glass flex flex-col gap-3 p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-slate-300">
               초대 QR (입장 링크)
             </h2>
@@ -195,7 +195,7 @@ export default function AdminPage() {
           </section>
 
           <section className="flex flex-wrap gap-2">
-            <span className="rounded-lg bg-slate-800 px-2 py-1 text-xs text-slate-300">
+            <span className="glass rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
               방 상태:{" "}
               <strong className="text-white">
                 {room.phase === "playing" ? "진행 중" : "로비"}
@@ -205,7 +205,7 @@ export default function AdminPage() {
               type="button"
               disabled={busyAction !== null || room.phase === "playing"}
               onClick={() => runAction("start")}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              className="glass-button-emerald px-4 py-2 text-sm disabled:opacity-40"
             >
               게임 시작
             </button>
@@ -213,7 +213,7 @@ export default function AdminPage() {
               type="button"
               disabled={busyAction !== null || room.phase === "lobby"}
               onClick={() => runAction("stop")}
-              className="rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              className="glass-button-amber px-4 py-2 text-sm disabled:opacity-40"
             >
               게임 종료 (로비)
             </button>
@@ -229,7 +229,7 @@ export default function AdminPage() {
                   runAction("reset");
                 }
               }}
-              className="rounded-xl border border-red-800 bg-red-950/40 px-4 py-2 text-sm font-semibold text-red-200"
+              className="glass-button-danger px-4 py-2 text-sm disabled:opacity-40"
             >
               전체 초기화
             </button>
@@ -239,10 +239,10 @@ export default function AdminPage() {
             <h2 className="mb-2 text-sm font-semibold text-slate-300">
               대기 · 승인
             </h2>
-            <div className="overflow-x-auto rounded-xl border border-slate-800">
+            <div className="glass glass-elevated overflow-x-auto rounded-xl">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-800 bg-slate-900/80 text-slate-500">
+                  <tr className="border-b border-white/[0.08] bg-white/[0.05] text-slate-400 backdrop-blur-sm">
                     <th className="px-3 py-2">닉네임</th>
                     <th className="px-3 py-2">상태</th>
                     <th className="px-3 py-2 text-right">동작</th>
@@ -285,7 +285,7 @@ function MemberRow({
   onApprove: () => void;
 }) {
   return (
-    <tr className="border-t border-slate-800/80 text-slate-300">
+    <tr className="border-t border-white/[0.06] text-slate-300">
       <td className="px-3 py-2.5 font-medium">{name}</td>
       <td className="px-3 py-2.5">
         <span
@@ -305,7 +305,7 @@ function MemberRow({
             type="button"
             disabled={busy}
             onClick={onApprove}
-            className="rounded-lg bg-sky-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-40"
+            className="glass-button-primary px-3 py-1.5 text-xs disabled:opacity-40"
           >
             승인
           </button>

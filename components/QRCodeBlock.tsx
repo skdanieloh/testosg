@@ -32,7 +32,10 @@ export function QRCodeBlock({ url, size = 200 }: Props) {
   }
   if (!dataUrl) {
     return (
-      <div className="flex h-[200px] w-[200px] items-center justify-center rounded-xl bg-white/10 text-sm text-slate-500">
+      <div
+        className="glass flex items-center justify-center rounded-2xl text-sm text-slate-500 shadow-lg"
+        style={{ width: size, height: size }}
+      >
         QR…
       </div>
     );
@@ -44,7 +47,7 @@ export function QRCodeBlock({ url, size = 200 }: Props) {
       alt="방 입장 QR 코드"
       width={size}
       height={size}
-      className="rounded-xl bg-white p-2"
+      className="rounded-2xl bg-white/95 p-2 shadow-lg ring-1 ring-white/30"
     />
   );
 }

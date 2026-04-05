@@ -19,10 +19,12 @@ export default function RankingPage() {
   return (
     <main className="app-shell flex-col gap-4">
       <div>
-        <Link href="/" className="text-sm text-sky-400">
+        <Link href="/" className="glass-link text-sm">
           ← 처음으로
         </Link>
-        <h1 className="mt-4 text-xl font-bold text-white">방 랭킹</h1>
+        <h1 className="mt-4 text-xl font-bold tracking-tight text-white">
+          방 랭킹
+        </h1>
         <p className="mt-1 font-mono text-xs text-slate-500">{MAIN_ROOM_ID}</p>
       </div>
 
@@ -32,7 +34,7 @@ export default function RankingPage() {
 
       {loading && <Loading />}
       {error && (
-        <p className="rounded-xl border border-red-900 bg-red-950/40 p-4 text-sm text-red-300">
+        <p className="glass rounded-2xl border-red-500/30 bg-red-950/35 p-4 text-sm text-red-200 backdrop-blur-xl">
           {error}
         </p>
       )}
@@ -41,15 +43,12 @@ export default function RankingPage() {
       )}
 
       <div className="mt-auto flex flex-col gap-2 pt-4">
-        <Link
-          href="/"
-          className="rounded-2xl border border-slate-600 py-3 text-center text-base font-semibold text-slate-200 active:bg-slate-800"
-        >
+        <Link href="/" className="glass-button py-3 text-center text-base text-slate-100">
           게임 종료
         </Link>
         <Link
           href="/game"
-          className="rounded-2xl bg-sky-600 py-3 text-center text-base font-semibold text-white active:bg-sky-700"
+          className="glass-button-primary py-3 text-center text-base"
         >
           이 방에서 게임 계속하기
         </Link>

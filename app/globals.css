@@ -12,6 +12,14 @@
     --safe-right: env(safe-area-inset-right, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
+    /* Liquid Glass 톤 (다크 모드) */
+    --glass-fill: rgba(255, 255, 255, 0.07);
+    --glass-fill-elevated: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-border-soft: rgba(255, 255, 255, 0.1);
+    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    --glass-blur: 24px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.38);
   }
 
   html {
@@ -19,13 +27,160 @@
   }
 
   body {
-    @apply min-h-[100dvh] overflow-x-hidden bg-slate-950 text-slate-100 antialiased;
-    /* 구형 모바일: dvh 미지원 시 대비 */
+    @apply min-h-[100dvh] overflow-x-hidden text-slate-100 antialiased;
     min-height: 100svh;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+      "Segoe UI", system-ui, sans-serif;
+    /* 깊이감 있는 다크 배경 — 글라스가 얹일 레이어 */
+    background-color: #0a0e17;
+    background-image:
+      radial-gradient(
+        ellipse 100% 70% at 50% -15%,
+        rgba(56, 189, 248, 0.14),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 100% 30%,
+        rgba(139, 92, 246, 0.08),
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse 50% 35% at 0% 70%,
+        rgba(34, 211, 238, 0.05),
+        transparent 45%
+      ),
+      linear-gradient(180deg, #0c1222 0%, #0a0e17 45%, #070a12 100%);
+    background-attachment: fixed;
   }
 }
 
 @layer components {
+  /**
+   * Liquid Glass: 반투명 + backdrop-blur + 상단 하이라이트 테두리
+   * (최근 Apple HIG / 유리 질감 UI에 맞춘 다크 톤)
+   */
+  .glass {
+    border-radius: 1.25rem;
+    border: 1px solid var(--glass-border-soft);
+    background: var(--glass-fill);
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+
+  .glass-elevated {
+    border-color: var(--glass-border);
+    background: var(--glass-fill-elevated);
+  }
+
+  .glass-button {
+    @apply inline-flex items-center justify-center font-semibold text-white transition active:scale-[0.98] touch-manipulation;
+    border-radius: 1.125rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0
+      rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+
+  .glass-button:hover {
+    background: rgba(255, 255, 255, 0.11);
+  }
+
+  .glass-button-primary {
+    @apply glass-button text-white;
+    border-color: rgba(56, 189, 248, 0.45);
+    background: linear-gradient(
+      180deg,
+      rgba(56, 189, 248, 0.42) 0%,
+      rgba(14, 165, 233, 0.32) 100%
+    );
+    box-shadow:
+      0 4px 24px rgba(14, 165, 233, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-button-primary:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(56, 189, 248, 0.5) 0%,
+      rgba(14, 165, 233, 0.4) 100%
+    );
+  }
+
+  .glass-button-emerald {
+    @apply glass-button text-white;
+    border-color: rgba(52, 211, 153, 0.4);
+    background: linear-gradient(
+      180deg,
+      rgba(16, 185, 129, 0.45) 0%,
+      rgba(5, 150, 105, 0.35) 100%
+    );
+    box-shadow:
+      0 4px 20px rgba(16, 185, 129, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  .glass-button-amber {
+    @apply glass-button text-amber-50;
+    border-color: rgba(251, 191, 36, 0.35);
+    background: linear-gradient(
+      180deg,
+      rgba(217, 119, 6, 0.45) 0%,
+      rgba(180, 83, 9, 0.38) 100%
+    );
+  }
+
+  .glass-button-danger {
+    @apply glass-button text-red-100;
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(127, 29, 29, 0.35);
+  }
+
+  .glass-input {
+    @apply w-full text-white placeholder:text-slate-500 outline-none transition;
+    border-radius: 0.875rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.25);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .glass-input:focus {
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.2),
+      0 0 0 3px rgba(56, 189, 248, 0.15);
+  }
+
+  .glass-hud {
+    @apply flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm tabular-nums;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-canvas-frame {
+    @apply relative w-full overflow-hidden rounded-2xl shadow-xl;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .glass-link {
+    @apply text-sky-300/95 transition hover:text-sky-200;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
   /**
    * 모든 페이지 공통: 가로 100%, 큰 화면에서는 읽기 폭만 제한.
    * 세로는 동적 뷰포트(주소창 등)에 맞춤.
@@ -77,4 +232,23 @@
   padding-bottom: max(0.75rem, var(--safe-bottom), 28px);
   padding-left: max(0.5rem, var(--safe-left));
   padding-right: max(0.5rem, var(--safe-right));
+}
+
+.touch-pad button {
+  border-radius: 1.125rem;
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(14, 165, 233, 0.32) 100%
+  );
+  box-shadow:
+    0 6px 24px rgba(14, 165, 233, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.touch-pad button:active {
+  transform: scale(0.98);
 }

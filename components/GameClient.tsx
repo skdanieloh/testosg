@@ -86,7 +86,7 @@ export function GameClient({ nickname }: Props) {
   return (
     <div className="flex w-full max-w-full flex-col items-stretch gap-3">
       {!over && (
-        <div className="flex w-full justify-between px-0.5 text-sm tabular-nums text-slate-300">
+        <div className="glass-hud w-full text-slate-200">
           <span>
             점수 <strong className="text-white">{hud.score}</strong>
           </span>
@@ -96,7 +96,7 @@ export function GameClient({ nickname }: Props) {
         </div>
       )}
 
-      <div className="relative w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-xl">
+      <div className="glass-canvas-frame">
         <canvas
           ref={canvasRef}
           width={GAME_CANVAS_W}
@@ -104,7 +104,7 @@ export function GameClient({ nickname }: Props) {
           className="block h-auto w-full max-w-none touch-none"
         />
         {over && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-slate-950/92 p-4 pt-safe pb-safe-game text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-y-auto border-t border-white/[0.08] bg-slate-950/75 p-4 pt-safe pb-safe-game text-center backdrop-blur-2xl">
             <p className="text-xl font-bold text-white">GAME OVER</p>
             <p className="text-slate-400">
               점수 <span className="text-white">{over.score}</span> · 레벨{" "}
@@ -122,13 +122,13 @@ export function GameClient({ nickname }: Props) {
             <div className="mt-3 flex w-full max-w-xs flex-col gap-2">
               <Link
                 href="/ranking"
-                className="rounded-2xl bg-sky-600 py-3 text-center text-base font-semibold text-white"
+                className="glass-button-primary py-3 text-center text-base"
               >
                 전체 랭킹
               </Link>
               <button
                 type="button"
-                className="rounded-2xl border border-slate-600 py-3 text-base font-semibold text-slate-200"
+                className="glass-button py-3 text-base text-slate-100"
                 onClick={handleReplay}
               >
                 다시 하기

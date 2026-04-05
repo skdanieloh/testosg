@@ -46,7 +46,7 @@ export default function GamePage() {
     return (
       <main className="app-shell app-shell--game flex-col">
         <p className="text-sm text-red-400">{error}</p>
-        <Link href="/room" className="mt-4 inline-block text-sky-400">
+        <Link href="/room" className="glass-link mt-4 inline-block text-sm">
           ← 입장 화면
         </Link>
       </main>
@@ -71,11 +71,11 @@ export default function GamePage() {
 
   return (
     <main className="app-shell app-shell--game flex-col gap-3">
-      <div className="flex shrink-0 items-center justify-between gap-2 px-0">
-        <Link href="/room" className="text-sm text-sky-400">
+      <div className="glass-hud flex shrink-0 items-center justify-between gap-2">
+        <Link href="/room" className="glass-link text-sm">
           ← 로비
         </Link>
-        <span className="truncate text-xs text-slate-500">{nick}</span>
+        <span className="truncate text-xs text-slate-400">{nick}</span>
       </div>
       <GameClient nickname={nick} />
     </main>
