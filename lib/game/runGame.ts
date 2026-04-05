@@ -22,7 +22,7 @@ const ENEMY_PALETTES: CarSpec[] = [
 const W = 420;
 const H = 640;
 const ROAD_MARGIN = 36;
-const LANE_COUNT = 3;
+const LANE_COUNT = 4;
 const LANE_WIDTH = (W - ROAD_MARGIN * 2) / LANE_COUNT;
 const PLAYER_Y = H - 120;
 const PLAYER_W = 44;
@@ -211,7 +211,7 @@ export function createGame(
   const laneCenterX = (i: number) => ROAD_MARGIN + LANE_WIDTH * (i + 0.5);
 
   function shuffleLanes(): number[] {
-    const a = [0, 1, 2];
+    const a = [0, 1, 2, 3];
     for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [a[i], a[j]] = [a[j]!, a[i]!];

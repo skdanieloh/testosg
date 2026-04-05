@@ -18,6 +18,22 @@
   .safe-area-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   }
+
+  /**
+   * 게임 화면: iOS는 safe-area로 충분한 경우가 많고,
+   * 갤럭시 등 Android는 inset이 0인데 제스처/내비 바가 있어 겹침이 난다.
+   * 최소 하단 여백을 env와 함께 max로 보장한다.
+   */
+  .game-page-shell {
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(
+      1.75rem,
+      env(safe-area-inset-bottom, 0px),
+      36px
+    );
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
 }
 
 body {
@@ -25,7 +41,11 @@ body {
 }
 
 .touch-pad {
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(
+    0.75rem,
+    env(safe-area-inset-bottom, 0px),
+    28px
+  );
   padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
   padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
 }
