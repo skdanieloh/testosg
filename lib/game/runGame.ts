@@ -159,9 +159,9 @@ type Enemy = {
   palette: CarSpec;
 };
 
-/** 레벨 10, 20, 30… 마다 +1 (레벨 1~9 → 0) */
+/** 5레벨마다 +1 (레벨 1~4 → 0, 5~9 → 1, …) */
 function difficultyTier(level: number): number {
-  return Math.floor(level / 10);
+  return Math.floor(level / 5);
 }
 
 const LEVEL_UP_FLASH_MS = 2200;
@@ -232,11 +232,14 @@ export function createGame(
       ENEMY_PALETTES[Math.floor(Math.random() * ENEMY_PALETTES.length)];
     const baseVy = 150 + level * 32 + survivalTime * 2.5;
     let vy = baseVy + Math.random() * (70 + level * 8);
-    const fastChance = Math.min(0.5, 0.1 + tier * 0.07);
-    if (Math.random() < fastChance) {
+    const allowFast = level >= 5;
+    const fastChance = allowFast
+      ? Math.min(0.48, 0.08 + tier * 0.05)
+      : 0;
+    if (fastChance > 0 && Math.random() < fastChance) {
       vy *= 1.35 + Math.random() * 1.15;
     }
-    const vx = (Math.random() - 0.5) * (38 + level * 4 + tier * 6);
+    const vx = (Math.random() - 0.5) * (38 + level * 4 + tier * 5);
     const yOffset = Math.random() * 55;
     enemies.push({ x, y: -ENEMY_H - 20 - yOffset, vy, vx, palette });
   }
@@ -285,17 +288,17 @@ export function createGame(
     survivalTime += dt;
     level = 1 + Math.floor(survivalTime / 12);
     if (level > prevLevel) {
-      const oldM = Math.floor(prevLevel / 10);
-      const newM = Math.floor(level / 10);
-      if (newM > oldM && level >= 10) {
+      const oldM = Math.floor(prevLevel / 5);
+      const newM = Math.floor(level / 5);
+      if (newM > oldM && level >= 5) {
         levelUpFlashUntil = ts + LEVEL_UP_FLASH_MS;
       }
       prevLevel = level;
     }
 
     const tier = difficultyTier(level);
-    difficulty = 1 + (level - 1) * 0.5 + survivalTime * 0.035 + tier * 0.35;
-    const scrollSpeed = 260 + level * 55 + survivalTime * 3 + tier * 40;
+    difficulty = 1 + (level - 1) * 0.5 + survivalTime * 0.035 + tier * 0.2;
+    const scrollSpeed = 260 + level * 55 + survivalTime * 3 + tier * 22;
     roadOffset += scrollSpeed * dt;
     syncPlayerX(dt);
 
@@ -305,11 +308,11 @@ export function createGame(
       1.45 -
         level * 0.07 -
         survivalTime * 0.012 -
-        tier * 0.09
+        tier * 0.055
     );
     if (spawnAcc >= interval) {
       spawnAcc = 0;
-      const spawnsPerTick = 1 + tier;
+      const spawnsPerTick = level < 5 ? 1 : 1 + tier;
       const lanes = shuffleLanes();
       for (let i = 0; i < spawnsPerTick; i++) {
         spawnEnemyAtLane(lanes[i % LANE_COUNT]!, tier);
@@ -377,7 +380,7 @@ export function createGame(
         '700 18px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
       ctx.fillStyle = "rgba(248,250,252,0.92)";
       ctx.fillText(
-        `레벨 ${level} 돌파 · 차 증가 & 고속 차 혼입`,
+        `레벨 ${level} 돌파 · 웨이브당 ${1 + tier}대 · 고속 차 혼입`,
         cx,
         cy + 52
       );
